@@ -1338,6 +1338,7 @@ GameObject:
   - component: {fileID: 1253729934}
   - component: {fileID: 1253729933}
   - component: {fileID: 1253729932}
+  - component: {fileID: 1253729935}
   m_Layer: 5
   m_Name: Label (2)
   m_TagString: Untagged
@@ -1371,7 +1372,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1253729930}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d10025ddaeae43119568fb41803798f5, type: 3}
   m_Name: 
@@ -1400,7 +1401,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: WonderLand
+  m_text: <wave amplitude=0.7 >WonderLand
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: af88cc836478ce9478dddb52566516b5, type: 2}
   m_sharedMaterial: {fileID: -2205504558698839920, guid: af88cc836478ce9478dddb52566516b5, type: 2}
@@ -1479,6 +1480,46 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1253729930}
   m_CullTransparentMesh: 1
+--- !u!114 &1253729935
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1253729930}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 64cc8a40f9848a54c94bf232155b0b4f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  database: {fileID: 11400000, guid: f0a33761ff6919d4a9979ee36980a29d, type: 2}
+  context:
+    scaleAnimations: 1
+    scaleUniformly: 1
+    useScaledTime: 1
+    tmpAnimator: {fileID: 1253729935}
+  updateFrom: 0
+  animateOnStart: 1
+  animationsOverride: 0
+  defaultAnimationsStrings: []
+  defaultShowAnimationsStrings: []
+  defaultHideAnimationsStrings: []
+  excludedCharacters: 
+  excludedCharactersShow: 
+  excludedCharactersHide: 
+  excludePunctuation: 0
+  excludePunctuationShow: 0
+  excludePunctuationHide: 0
+  sceneAnimations:
+    _serializedList: []
+  sceneShowAnimations:
+    _serializedList: []
+  sceneHideAnimations:
+    _serializedList: []
+  preview: 1
+  useDefaultDatabase: 1
+  initDatabase: 1
+  previewUpdatesPerSecond: 60
 --- !u!1001 &1434693206
 PrefabInstance:
   m_ObjectHideFlags: 0
