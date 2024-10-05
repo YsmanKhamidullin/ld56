@@ -9,4 +9,5 @@ public class Ant : MonoBehaviour
     public float AttackDelay;
     public float LastAttackTime;
     public Rigidbody2D rb;
+    public Transform ProjectilePrefab;
 }

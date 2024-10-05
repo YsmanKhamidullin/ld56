@@ -5,6 +5,10 @@ TagManager:
   serializedVersion: 3
   tags:
   - Enemy
+  - NotEnemy
+  - EnemyMelee
+  - EnemyRange
+  - EnemyBoss
   layers:
   - Default
   - TransparentFX
@@ -13,7 +17,7 @@ TagManager:
   - Water
   - UI
   - Enemy
-  - 
+  - NotEnemy
   - 
   - 
   - 

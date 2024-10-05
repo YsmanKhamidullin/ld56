@@ -1,14 +1,13 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using Cysharp.Threading.Tasks;
 using DG.Tweening;
-using DG.Tweening.Core.Easing;
+using TMPEffects.Components;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using UnityEngine.Serialization;
 using UnityEngine.UI;
+using Random = UnityEngine.Random;
 
 /*
 
@@ -46,7 +45,7 @@ public class Main : MonoBehaviour
     private TextMeshProUGUI _gameCompleteRoninLabel;
 
     [SerializeField]
-    private TextMeshProUGUI _gameCompleteThanksLabel;
+    private TMPWriter _gameCompleteThanksLabel;
 
     [SerializeField]
     private Button _gameStartButton;
@@ -69,12 +68,22 @@ public class Main : MonoBehaviour
     [SerializeField]
     private CustomSlider _musicSlider;
 
-    [Header("Enemies")]
-    private List<Ant> _enemies;
+    [SerializeField]
+    private List<Image> _playerHealthImages;
 
+    [Header("Enemies")]
+    [SerializeField]
+    private float _projectileSpeed;
+
+    private List<Ant> _meleeEnemies;
+    private List<Ant> _rangeEnemies;
+    private List<Ant> _bossEnemies;
     private List<Ant> _notEnemies;
 
     [Header("Player")]
+    [SerializeField]
+    private Slider _dashSlider;
+
     [SerializeField]
     private Ant _player;
 
@@ -107,6 +116,15 @@ public class Main : MonoBehaviour
         InitializeCanvas();
         InitializePlayer();
         InitializeEnemies();
+        if (SceneManager.GetActiveScene().buildIndex != 0)
+        {
+            Game.IsPause = false;
+        }
+        else
+        {
+            _gameStartMenu.gameObject.SetActive(false);
+            _ = StartGame();
+        }
     }
 
     private void OnDestroy()
@@ -126,10 +144,10 @@ public class Main : MonoBehaviour
 
     private void InitializeEnemies()
     {
-        _enemies = FindObjectsByType<Ant>(FindObjectsSortMode.None)
-            .Where(t => t.gameObject.layer == LayerMask.NameToLayer("Enemy")).ToList();
-        _notEnemies = FindObjectsByType<Ant>(FindObjectsSortMode.None)
-            .Where(t => t.gameObject.layer != LayerMask.NameToLayer("Player")).Except(_enemies).ToList();
+        var allAnts = FindObjectsByType<Ant>(FindObjectsSortMode.None);
+        _meleeEnemies = allAnts.Where(t => t.gameObject.CompareTag("EnemyMelee")).ToList();
+        _rangeEnemies = allAnts.Where(t => t.gameObject.CompareTag("EnemyRange")).ToList();
+        _notEnemies = allAnts.Where(t => t.gameObject.CompareTag("NotEnemy")).ToList();
     }
 
 
@@ -182,7 +200,22 @@ public class Main : MonoBehaviour
         }
 
         UpdatePlayer();
+        UpdateHUD();
         UpdateEnemies();
+        UpdateEnemyProjectiles();
+    }
+
+    private void UpdateHUD()
+    {
+        for (int i = 0; i < _playerHealthImages.Count; i++)
+        {
+            _playerHealthImages[i].gameObject.SetActive(false);
+        }
+
+        for (int i = _player.Health - 1; i >= 0; i--)
+        {
+            _playerHealthImages[i].gameObject.SetActive(true);
+        }
     }
 
 
@@ -196,18 +229,18 @@ public class Main : MonoBehaviour
 
     private async UniTask TryCompleteLevel()
     {
-        if (_enemies.Count == 0)
+        if (_meleeEnemies.Count == 0 && _rangeEnemies.Count == 0)
         {
             DOTween.KillAll();
 
             bool isLastScene = SceneManager.GetActiveScene().buildIndex == SceneManager.sceneCountInBuildSettings - 1;
             if (isLastScene)
             {
-                await LevelComplete();
+                _ = GameComplete();
             }
             else
             {
-                _ = GameComplete();
+                await LevelComplete();
             }
         }
     }
@@ -216,6 +249,7 @@ public class Main : MonoBehaviour
     {
         Game.IsPause = true;
         _levelCompleteMenu.alpha = 0f;
+        _levelCompleteCounterLabel.text = "";
         _levelCompleteMenu.gameObject.SetActive(true);
         await _levelCompleteMenu.FadeIn(1f);
         _levelCompleteCounterLabel.text = "Next Level is in 3...";
@@ -232,24 +266,35 @@ public class Main : MonoBehaviour
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex + 1);
     }
 
-    [SerializeField]
-    private AnimationCurve _labelRoninEase;
-
     private async UniTask GameComplete()
     {
         Game.IsPause = true;
         _gameCompleteMenu.alpha = 0f;
         _gameCompleteMenu.gameObject.SetActive(true);
+        _gameCompleteThanksLabel.SetText("");
+        _gameCompleteRoninLabel.color = _gameCompleteRoninLabel.color.ZeroAlpha();
         await _gameCompleteMenu.FadeIn(1f);
-        _gameCompleteRoninLabel.color.ZeroAlpha();
-        _gameCompleteRoninLabel.DOFade(1f, 10f).SetEase(_labelRoninEase);
-        _gameCompleteThanksLabel.text = "Thanks for playing!";
+
+        _gameCompleteThanksLabel.SetText("You completed your journey. Congratulations!");
+        _gameCompleteThanksLabel.RestartWriter();
+
+        await UniTask.WaitUntil(() => !_gameCompleteThanksLabel.IsWriting);
+        await UniTask.Delay(1500);
+
+        _gameCompleteThanksLabel.SetText("Thanks for playing!");
+        _gameCompleteThanksLabel.RestartWriter();
+
+        await UniTask.WaitUntil(() => !_gameCompleteThanksLabel.IsWriting);
+        await UniTask.Delay(1500);
+
+        _gameCompleteThanksLabel.SetText("And remember...");
+        _gameCompleteThanksLabel.RestartWriter();
+
+        await UniTask.WaitUntil(() => !_gameCompleteThanksLabel.IsWriting);
+        _gameCompleteRoninLabel.DOFade(1f, 2f).SetEase(Ease.InExpo);
         await UniTask.Delay(1000);
-        _gameCompleteThanksLabel.text = "It was my first game jam!";
-        await UniTask.Delay(1000);
-        _gameCompleteThanksLabel.text = "And remember...";
-        await UniTask.Delay(1000);
-        _gameCompleteThanksLabel.text = "";
+        _gameCompleteThanksLabel.SetText("");
+        await UniTask.Delay(2000);
         _restartGameAfterCompleteButton.gameObject.SetActive(true);
     }
 
@@ -298,15 +343,15 @@ public class Main : MonoBehaviour
 
     private void UpdateEnemies()
     {
-        foreach (var enemy in _enemies)
+        foreach (var enemy in _meleeEnemies)
         {
             if (enemy.transform.IsNear(_player.transform, enemy.AttackRange))
             {
                 enemy.rb.linearVelocity = Vector2.zero;
-                bool isCanAttack = CanAttack(enemy) && !_isPlayerDash;
+                bool isCanAttack = IsEnemyCanAttack(enemy) && !_isPlayerDash;
                 if (isCanAttack)
                 {
-                    EnemyAttack(enemy, _player);
+                    MeleeEnemyAttack(enemy, _player);
                 }
             }
             else
@@ -317,14 +362,65 @@ public class Main : MonoBehaviour
                 enemy.transform.up = dir;
             }
         }
+
+        foreach (var ant in _rangeEnemies)
+        {
+            bool isCanAttack = IsEnemyCanAttack(ant);
+            if (isCanAttack)
+            {
+                var dir = (_player.transform.position - ant.transform.position).normalized;
+                ant.transform.up = dir;
+                RangeEnemyAttack(ant, _player);
+            }
+        }
     }
 
-    private void EnemyAttack(Ant enemy, Ant player)
+    private void MeleeEnemyAttack(Ant enemy, Ant player)
     {
         enemy.transform.DOKill(true);
         enemy.transform.DOPunchScale(1.025f * Vector3.one, 0.15f, 1, 0.1f);
         enemy.LastAttackTime = Time.time;
         TryDealDamageToPlayer(enemy.Damage);
+    }
+
+    private void RangeEnemyAttack(Ant ant, Ant player)
+    {
+        var projectile = Instantiate(ant.ProjectilePrefab, ant.transform.position, Quaternion.identity);
+        projectile.up = (_player.transform.position - ant.transform.position).normalized;
+        AddProjectileAndDestroyAfterTime(projectile);
+        ant.LastAttackTime = Time.time;
+    }
+
+    private List<Transform> _projectiles = new();
+    private float _projectileAttackRange = 1f;
+
+    private void AddProjectileAndDestroyAfterTime(Transform projectile)
+    {
+        _projectiles.Add(projectile);
+        projectile.DOScale(Vector3.zero, 3).SetEase(Ease.InBack).OnComplete(() =>
+        {
+            _projectiles.Remove(projectile);
+            Destroy(projectile.gameObject, 3f);
+        });
+    }
+
+    private void UpdateEnemyProjectiles()
+    {
+        for (var i = 0; i < _projectiles.Count; i++)
+        {
+            var projectile = _projectiles[i];
+            projectile.position += projectile.up * (_projectileSpeed * Time.deltaTime);
+            if (projectile.IsNear(_player.transform, projectile.localScale.x / 2f))
+            {
+                TryDealDamageToPlayer(1);
+                projectile.gameObject.SetActive(false);
+            }
+        }
+    }
+
+    private bool IsEnemyCanAttack(Ant ant)
+    {
+        return Time.time - ant.LastAttackTime > ant.AttackDelay + Random.Range(0, 0.5f);
     }
 
     #endregion
@@ -349,6 +445,8 @@ public class Main : MonoBehaviour
         }
 
         _player.Health -= damage;
+        _isPlayerInvincible = true;
+        DOTween.Sequence().InsertCallback(0.1f, () => { _isPlayerInvincible = false; });
         _player.transform.DOKill(true);
         _player.transform.DOPunchScale(1.025f * Vector3.one, 0.15f, 1, 0.1f);
         CheckPlayerHealth();
@@ -403,7 +501,8 @@ public class Main : MonoBehaviour
 
         if (_player.LastAttackTime > 0)
         {
-            _isCanDash = CanAttack(_player);
+            _dashSlider.value = Mathf.Clamp01((Time.time - _player.LastAttackTime) / _player.AttackDelay);
+            _isCanDash = Time.time - _player.LastAttackTime > _player.AttackDelay;
         }
     }
 
@@ -420,6 +519,7 @@ public class Main : MonoBehaviour
 
             _player.rb.linearVelocity = direction * _dashSpeed;
             TryPlayerAttackNearEnemies();
+            TryDestroyNearProjectiles();
             await UniTask.Yield();
         }
 
@@ -428,14 +528,35 @@ public class Main : MonoBehaviour
         _isPlayerInvincible = false;
     }
 
+    private void TryDestroyNearProjectiles()
+    {
+        for (var i = 0; i < _projectiles.Count; i++)
+        {
+            var projectile = _projectiles[i];
+            if (_player.transform.IsNear(projectile, _player.AttackRange))
+            {
+                projectile.gameObject.SetActive(false);
+            }
+        }
+    }
+
     private void TryPlayerAttackNearEnemies()
     {
-        for (var i = 0; i < _enemies.Count; i++)
+        for (var i = 0; i < _meleeEnemies.Count; i++)
         {
-            var enemy = _enemies[i];
+            var enemy = _meleeEnemies[i];
             if (_player.transform.IsNear(enemy.transform, _player.AttackRange))
             {
-                _ = PlayerAttack(enemy, _enemies);
+                _ = PlayerAttack(enemy, _meleeEnemies);
+            }
+        }
+
+        for (var i = 0; i < _rangeEnemies.Count; i++)
+        {
+            var enemy = _rangeEnemies[i];
+            if (_player.transform.IsNear(enemy.transform, _player.AttackRange))
+            {
+                _ = PlayerAttack(enemy, _rangeEnemies);
             }
         }
 
@@ -464,11 +585,6 @@ public class Main : MonoBehaviour
     }
 
     #endregion
-
-    private bool CanAttack(Ant ant)
-    {
-        return Time.time - ant.LastAttackTime > ant.AttackDelay;
-    }
 
     private void SetMusic(float obj)
     {

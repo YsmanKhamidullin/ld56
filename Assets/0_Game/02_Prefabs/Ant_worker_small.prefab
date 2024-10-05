@@ -201,6 +201,10 @@ PrefabInstance:
       propertyPath: m_Layer
       value: 6
       objectReference: {fileID: 0}
+    - target: {fileID: 2566751097508349154, guid: 43b84d69bdd66a945923324d8012d692, type: 3}
+      propertyPath: m_TagString
+      value: EnemyMelee
+      objectReference: {fileID: 0}
     - target: {fileID: 2667945909120481155, guid: 43b84d69bdd66a945923324d8012d692, type: 3}
       propertyPath: m_Layer
       value: 6
@@ -373,7 +377,7 @@ PrefabInstance:
     m_RemovedGameObjects: []
     m_AddedGameObjects:
     - targetCorrespondingSourceObject: {fileID: 6845189747856634590, guid: 43b84d69bdd66a945923324d8012d692, type: 3}
-      insertIndex: -1
+      insertIndex: 9
       addedObject: {fileID: 8672196914768567987}
     - targetCorrespondingSourceObject: {fileID: 1388484979062949391, guid: 43b84d69bdd66a945923324d8012d692, type: 3}
       insertIndex: -1
