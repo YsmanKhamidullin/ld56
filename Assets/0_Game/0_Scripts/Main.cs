@@ -5,6 +5,7 @@ using Cysharp.Threading.Tasks;
 using DG.Tweening;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 public class Main : MonoBehaviour
@@ -34,6 +35,9 @@ public class Main : MonoBehaviour
 
     [SerializeField]
     private float _playerSpeed = 2f;
+
+    [FormerlySerializedAs("_playerRotationSpeed"), SerializeField]
+    private float _playerRotateDuration = 2f;
 
     [Header("Debug")]
     [SerializeField]
@@ -83,7 +87,35 @@ public class Main : MonoBehaviour
             return;
         }
 
-        UpdateInput();
+        UpdateRayCast();
+        _ = UpdateDash();
+        if (!_isDash)
+        {
+            UpdatePlayerMove();
+            UpdatePlayerRotation();
+        }
+    }
+
+    private Vector3 _mousePos;
+
+    private void UpdatePlayerRotation()
+    {
+        _mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+        _mousePos.z = 0f; // Set z to zero for 2D mode
+        var direction = new Vector2(_mousePos.x - _player.transform.position.x,
+            _mousePos.y - _player.transform.position.y);
+        float rotationZ = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg - 90f;
+        _player.transform.DORotate(new Vector3(0f, 0f, rotationZ), _playerRotateDuration);
+    }
+
+    private RaycastHit2D _currentRayHit;
+
+    private void UpdateRayCast()
+    {
+        _currentRayHit = Physics2D.Raycast(Camera.main.ScreenToWorldPoint(Input.mousePosition), Vector2.zero);
+        if (_currentRayHit.collider != null)
+        {
+        }
     }
 
     private UniTask _pauseTask;
@@ -103,7 +135,7 @@ public class Main : MonoBehaviour
         }
     }
 
-    private void UpdateInput()
+    private void UpdatePlayerMove()
     {
         var horizontal = Input.GetAxisRaw("Horizontal");
         var vertical = Input.GetAxisRaw("Vertical");
@@ -111,8 +143,63 @@ public class Main : MonoBehaviour
         {
             horizontal *= _playerSpeed * Time.deltaTime;
             vertical *= _playerSpeed * Time.deltaTime;
-            _player.transform.position += new Vector3(horizontal, 0, vertical);
+            _player.transform.position += new Vector3(horizontal, vertical, 0);
         }
+    }
+
+    private async UniTask UpdateDash()
+    {
+        bool isDash = Input.GetMouseButtonDown(0);
+        if (isDash && _isCanDash)
+        {
+            await PlayerDash(Vector2.up);
+            _lastDashTime = Time.time;
+        }
+
+        if (_lastDashTime > 0)
+        {
+            var timeSinceDash = Time.time - _lastDashTime;
+            if (timeSinceDash > _dashCoolDown)
+            {
+                _isCanDash = true;
+                _lastDashTime = -1f;
+            }
+        }
+    }
+
+    private bool _isCanDash = true;
+    private bool _isPlayerInvincible;
+    private bool _isDash;
+
+    [SerializeField]
+    private float _dashCoolDown = 0.5f;
+
+    [SerializeField]
+    private float _dashTime = 0.2f;
+
+    [SerializeField]
+    private float _dashSpeed = 1f;
+
+    private float _currentDashTime = 0.2f;
+    private float _lastDashTime;
+
+    private async UniTask PlayerDash(Vector2 direction)
+    {
+        _isCanDash = false;
+        _isPlayerInvincible = true;
+        _currentDashTime = _dashTime; // Reset the dash timer.
+
+        _isDash = true;
+        while (_currentDashTime > 0f)
+        {
+            _currentDashTime -= Time.deltaTime; // Lower the dash timer each frame.
+
+            _player.transform.Translate(direction * _dashSpeed); // Dash in the direction that was held down.
+            await UniTask.Yield();
+        }
+
+        _isDash = false;
+        _isPlayerInvincible = false;
     }
 
     private async UniTask Pause()
