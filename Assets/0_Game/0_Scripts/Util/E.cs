@@ -11,7 +11,7 @@ public static class E
     {
         await target.DOFade(1f, duration).ToUniTask();
     }
-    
+
     public static async UniTask FadeOut(this CanvasGroup target, float duration = 0.5f)
     {
         await target.DOFade(0f, duration).ToUniTask();
@@ -105,6 +105,12 @@ public static class E
             removeFrom.Remove(position);
         }
     }
+
+    public static bool IsNear(this Transform from, Transform to, float threshold)
+    {
+        return Vector2.Distance(from.position, to.position) < threshold;
+    }
+
 
     /// <summary>
     /// Check duplicate pos
