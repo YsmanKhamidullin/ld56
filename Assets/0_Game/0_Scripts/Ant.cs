@@ -8,6 +8,10 @@ public class Ant : MonoBehaviour
     public float AttackRange;
     public float AttackDelay;
     public float LastAttackTime;
+    public float InvinsibleTime = 0.1f;
+    public float LastGetDamageTime;
     public Rigidbody2D rb;
     public Transform ProjectilePrefab;
+    public SpriteRenderer HitImpactSprite;
+    public Animator Animator;
 }

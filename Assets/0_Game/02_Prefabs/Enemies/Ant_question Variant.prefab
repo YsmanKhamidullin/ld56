@@ -32,6 +32,10 @@ PrefabInstance:
       propertyPath: m_Layer
       value: 7
       objectReference: {fileID: 0}
+    - target: {fileID: 2402446374028605450, guid: 8b039a68fd8531546ab842be5e626f3a, type: 3}
+      propertyPath: m_Color.a
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 2846828161019489146, guid: 8b039a68fd8531546ab842be5e626f3a, type: 3}
       propertyPath: m_Name
       value: Ant_question Variant

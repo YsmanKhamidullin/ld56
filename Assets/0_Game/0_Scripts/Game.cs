@@ -6,4 +6,5 @@ public static class Game
     public static float SoundValue { get; set; } = 0.5f;
     public static int AttackNotEnemy { get; set; }
     public static int RestartAfterComplete { get; set; }
+    public static Main.Difficulty Difficulty { get; set; }
 }

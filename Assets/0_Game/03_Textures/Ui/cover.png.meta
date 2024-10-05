@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 7c8834188c1803342afee4b94cefafc4
+guid: 689de0fa4e363974997d6f18f33bea30
 TextureImporter:
   internalIDToNameTable: []
   externalObjects: {}
@@ -43,14 +43,14 @@ TextureImporter:
   nPOTScale: 0
   lightmap: 0
   compressionQuality: 50
-  spriteMode: 2
+  spriteMode: 1
   spriteExtrude: 1
   spriteMeshType: 1
   alignment: 0
   spritePivot: {x: 0.5, y: 0.5}
   spritePixelsToUnits: 100
   spriteBorder: {x: 0, y: 0, z: 0, w: 0}
-  spriteGenerateFallbackPhysicsShape: 1
+  spriteGenerateFallbackPhysicsShape: 0
   alphaUsage: 1
   alphaIsTransparency: 1
   spriteTessellationDetail: -1
@@ -74,7 +74,7 @@ TextureImporter:
     textureFormat: -1
     textureCompression: 1
     compressionQuality: 50
-    crunchedCompression: 0
+    crunchedCompression: 1
     allowsAlphaSplitting: 0
     overridden: 0
     ignorePlatformSupport: 0
@@ -121,117 +121,7 @@ TextureImporter:
     forceMaximumCompressionQuality_BC6H_BC7: 0
   spriteSheet:
     serializedVersion: 2
-    sprites:
-    - serializedVersion: 2
-      name: ant_eye
-      rect:
-        serializedVersion: 2
-        x: 80
-        y: 232
-        width: 11
-        height: 10
-      alignment: 0
-      pivot: {x: 0.5, y: 0.5}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: c055d2182cd3c2543bdae5f3dea67fe5
-      internalID: 1931251100
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: ant_hand
-      rect:
-        serializedVersion: 2
-        x: 16
-        y: 150
-        width: 45
-        height: 52
-      alignment: 9
-      pivot: {x: 0.78231645, y: 0.18427306}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: ac8dfb11705fdfd4eaf8ab992013f0e2
-      internalID: -378491295
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: ant_body
-      rect:
-        serializedVersion: 2
-        x: 157
-        y: 15
-        width: 113
-        height: 193
-      alignment: 0
-      pivot: {x: 0.5, y: 0.5}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: 76b113d1ef0cad047b82794b48c84260
-      internalID: 203486138
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: ant_leg_down
-      rect:
-        serializedVersion: 2
-        x: 10
-        y: 86
-        width: 72
-        height: 62
-      alignment: 9
-      pivot: {x: 0.8954352, y: 0.88160115}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: 4c1d008b85c5bb14aa14d15105a37766
-      internalID: 1159576398
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: ang_leg_front
-      rect:
-        serializedVersion: 2
-        x: 9
-        y: 14
-        width: 94
-        height: 45
-      alignment: 9
-      pivot: {x: 0.91806877, y: 0.5178227}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: 14721513e09baae4eab81ec7134df785
-      internalID: 512128644
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
+    sprites: []
     outline: []
     customData: 
     physicsShape: []
@@ -245,12 +135,7 @@ TextureImporter:
     secondaryTextures: []
     spriteCustomMetadata:
       entries: []
-    nameFileIdTable:
-      ang_leg_front: 512128644
-      ant_body: 203486138
-      ant_eye: 1931251100
-      ant_hand: -378491295
-      ant_leg_down: 1159576398
+    nameFileIdTable: {}
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

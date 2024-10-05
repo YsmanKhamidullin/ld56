@@ -1,9 +1,14 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Cysharp.Threading.Tasks;
 using DG.Tweening;
+using DG.Tweening.Core;
+using DG.Tweening.Core.Enums;
+using DG.Tweening.Plugins.Options;
 using TMPEffects.Components;
 using TMPro;
+using Unity.Cinemachine;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -22,6 +27,9 @@ Diccuric_Sigeon: у него же много лап. добавь ещё кат�
 /// </summary>
 public class Main : MonoBehaviour
 {
+    [SerializeField]
+    private CinemachineFollow _camFollow;
+
     [Header("Canvas")]
     [SerializeField]
     private CanvasGroup _pauseMenu;
@@ -48,7 +56,13 @@ public class Main : MonoBehaviour
     private TMPWriter _gameCompleteThanksLabel;
 
     [SerializeField]
-    private Button _gameStartButton;
+    private Button _gameStartEasyButton;
+
+    [SerializeField]
+    private Button _gameStartNormalButton;
+
+    [SerializeField]
+    private Button _gameStartHardButton;
 
     [SerializeField]
     private Button _resumeGameButton;
@@ -71,14 +85,18 @@ public class Main : MonoBehaviour
     [SerializeField]
     private List<Image> _playerHealthImages;
 
-    [Header("Enemies")]
     [SerializeField]
     private float _projectileSpeed;
+
+    [Header("Enemies")]
+    [SerializeField]
+    private Transform _startUpdateEnemeiesPoint;
 
     private List<Ant> _meleeEnemies;
     private List<Ant> _rangeEnemies;
     private List<Ant> _bossEnemies;
     private List<Ant> _notEnemies;
+    private bool _isUpateEnemies;
 
     [Header("Player")]
     [SerializeField]
@@ -116,14 +134,13 @@ public class Main : MonoBehaviour
         InitializeCanvas();
         InitializePlayer();
         InitializeEnemies();
+        UpdateHUD();
         if (SceneManager.GetActiveScene().buildIndex != 0)
         {
-            Game.IsPause = false;
+            _ = StartGame(Game.Difficulty);
         }
         else
         {
-            _gameStartMenu.gameObject.SetActive(false);
-            _ = StartGame();
         }
     }
 
@@ -134,8 +151,25 @@ public class Main : MonoBehaviour
 
     #region GameLoop
 
-    private async UniTask StartGame()
+    private async UniTask StartGame(Difficulty difficulty)
     {
+        Game.Difficulty = difficulty;
+        switch (difficulty)
+        {
+            case Difficulty.Easy:
+                _player.Health = 5;
+                _player.AttackRange *= 1.2f;
+                break;
+            case Difficulty.Normal:
+                _player.Health = 3;
+                break;
+            case Difficulty.Hard:
+                _player.Health = 1;
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(difficulty), difficulty, null);
+        }
+
         Game.IsPause = true;
         await _gameStartMenu.FadeOut();
         _gameStartMenu.gameObject.SetActive(false);
@@ -156,9 +190,24 @@ public class Main : MonoBehaviour
         _player.gameObject.SetActive(true);
     }
 
+    public enum Difficulty
+    {
+        Easy,
+        Normal,
+        Hard
+    }
+
     private void InitializeCanvas()
     {
-        _gameStartButton.onClick.AddListener(() => _ = StartGame());
+        _gameStartMenu.gameObject.SetActive(true);
+        _gameOverMenu.gameObject.SetActive(true);
+        _pauseMenu.gameObject.SetActive(true);
+        _levelCompleteMenu.gameObject.SetActive(true);
+        _gameCompleteMenu.gameObject.SetActive(true);
+
+        _gameStartEasyButton.onClick.AddListener(() => _ = StartGame(Difficulty.Easy));
+        _gameStartNormalButton.onClick.AddListener(() => _ = StartGame(Difficulty.Normal));
+        _gameStartHardButton.onClick.AddListener(() => _ = StartGame(Difficulty.Hard));
         _resumeGameButton.onClick.AddListener(() => _ = UnPause());
         _restartLevelButton.onClick.AddListener(RestartLevel);
         _restartGameButton.onClick.AddListener(RestartGame);
@@ -201,8 +250,26 @@ public class Main : MonoBehaviour
 
         UpdatePlayer();
         UpdateHUD();
-        UpdateEnemies();
+        TryStartUpdateEnemies();
+        if (_isUpateEnemies)
+        {
+            UpdateEnemies();
+        }
+
         UpdateEnemyProjectiles();
+    }
+
+    private void TryStartUpdateEnemies()
+    {
+        if (_isUpateEnemies)
+        {
+            return;
+        }
+
+        if (_player.transform.IsNear(_startUpdateEnemeiesPoint, 2f))
+        {
+            _isUpateEnemies = true;
+        }
     }
 
     private void UpdateHUD()
@@ -227,7 +294,7 @@ public class Main : MonoBehaviour
         await _gameOverMenu.FadeIn(1f);
     }
 
-    private async UniTask TryCompleteLevel()
+    private async UniTask<bool> TryCompleteLevel()
     {
         if (_meleeEnemies.Count == 0 && _rangeEnemies.Count == 0)
         {
@@ -242,11 +309,16 @@ public class Main : MonoBehaviour
             {
                 await LevelComplete();
             }
+
+            return true;
         }
+
+        return false;
     }
 
     private async UniTask LevelComplete()
     {
+        _player.rb.linearVelocity = Vector2.zero;
         Game.IsPause = true;
         _levelCompleteMenu.alpha = 0f;
         _levelCompleteCounterLabel.text = "";
@@ -343,33 +415,43 @@ public class Main : MonoBehaviour
 
     private void UpdateEnemies()
     {
-        foreach (var enemy in _meleeEnemies)
+        foreach (var ant in _meleeEnemies)
         {
-            if (enemy.transform.IsNear(_player.transform, enemy.AttackRange))
+            if (Vector2.Distance(ant.transform.position, _player.transform.position) > 20)
             {
-                enemy.rb.linearVelocity = Vector2.zero;
-                bool isCanAttack = IsEnemyCanAttack(enemy) && !_isPlayerDash;
+                continue;
+            }
+
+            if (ant.transform.IsNear(_player.transform, ant.AttackRange))
+            {
+                ant.rb.linearVelocity = Vector2.zero;
+                ant.Animator.SetBool(Walk, false);
+                bool isCanAttack = IsEnemyCanAttack(ant) && !_isPlayerDash;
                 if (isCanAttack)
                 {
-                    MeleeEnemyAttack(enemy, _player);
+                    MeleeEnemyAttack(ant, _player);
                 }
             }
-            else
+            else // Move
             {
-                var dir = (_player.transform.position - enemy.transform.position).normalized;
-                var velocity = dir * enemy.MoveSpeed;
-                enemy.rb.linearVelocity = velocity;
-                enemy.transform.up = dir;
+                var dir = (_player.transform.position - ant.transform.position).normalized;
+                var velocity = dir * ant.MoveSpeed;
+                ant.Animator.SetBool(Walk, true);
+                ant.rb.linearVelocity = velocity;
+                ant.transform.up = dir;
             }
         }
 
         foreach (var ant in _rangeEnemies)
         {
+            if (Vector2.Distance(ant.transform.position, _player.transform.position) > 20)
+            {
+                continue;
+            }
+
             bool isCanAttack = IsEnemyCanAttack(ant);
             if (isCanAttack)
             {
-                var dir = (_player.transform.position - ant.transform.position).normalized;
-                ant.transform.up = dir;
                 RangeEnemyAttack(ant, _player);
             }
         }
@@ -393,6 +475,7 @@ public class Main : MonoBehaviour
 
     private List<Transform> _projectiles = new();
     private float _projectileAttackRange = 1f;
+    private static readonly int Walk = Animator.StringToHash("walk");
 
     private void AddProjectileAndDestroyAfterTime(Transform projectile)
     {
@@ -409,6 +492,11 @@ public class Main : MonoBehaviour
         for (var i = 0; i < _projectiles.Count; i++)
         {
             var projectile = _projectiles[i];
+            if (!projectile.gameObject.activeSelf)
+            {
+                continue;
+            }
+
             projectile.position += projectile.up * (_projectileSpeed * Time.deltaTime);
             if (projectile.IsNear(_player.transform, projectile.localScale.x / 2f))
             {
@@ -483,10 +571,12 @@ public class Main : MonoBehaviour
             horizontal *= _player.MoveSpeed;
             vertical *= _player.MoveSpeed;
             _player.rb.linearVelocity = new Vector3(horizontal, vertical, 0);
+            _player.Animator.SetBool(Walk, true);
         }
         else
         {
             _player.rb.linearVelocity = Vector2.zero;
+            _player.Animator.SetBool(Walk, false);
         }
     }
 
@@ -513,6 +603,10 @@ public class Main : MonoBehaviour
         _currentDashTime = _dashTime; // Reset the dash timer.
 
         _isPlayerDash = true;
+
+        var startZ = _camFollow.FollowOffset.z;
+        _player.Animator.Play("dash");
+        SmallZoom(startZ);
         while (_currentDashTime > 0f)
         {
             _currentDashTime -= Time.deltaTime; // Lower the dash timer each frame.
@@ -523,9 +617,22 @@ public class Main : MonoBehaviour
             await UniTask.Yield();
         }
 
+        UnZoom(startZ);
         _player.rb.linearVelocity = Vector2.zero;
         _isPlayerDash = false;
         _isPlayerInvincible = false;
+    }
+
+    private void SmallZoom(float startZ)
+    {
+        DOTween.To(() => _camFollow.FollowOffset.z, x => _camFollow.FollowOffset.z = x, startZ + 1f, 0.3f)
+            .SetEase(Ease.Flash);
+    }
+
+    private void UnZoom(float startZ)
+    {
+        DOTween.To(() => _camFollow.FollowOffset.z, x => _camFollow.FollowOffset.z = x, startZ, 0.2f)
+            .SetEase(Ease.Flash);
     }
 
     private void TryDestroyNearProjectiles()
@@ -573,18 +680,88 @@ public class Main : MonoBehaviour
 
     private async UniTask PlayerAttack(Ant target, List<Ant> targetArray)
     {
+        bool isTargetInvinsible = Time.time - target.LastGetDamageTime <= target.InvinsibleTime;
+        if (isTargetInvinsible)
+        {
+            return;
+        }
+
+        Time.timeScale = 0.6f;
+
+        target.LastGetDamageTime = Time.time;
         target.transform.DOPunchScale(1.015f * Vector3.one, 0.15f, 1, 0.1f).SetEase(Ease.Flash);
         target.Health -= _player.Damage;
+        if (target.HitImpactSprite != null)
+        {
+            target.HitImpactSprite.DOFade(1f, 0.1f).SetEase(Ease.Flash).SetLoops(2, LoopType.Yoyo);
+        }
+
+        SmallShake();
         if (target.Health <= 0)
         {
             targetArray.Remove(target);
             await target.transform.DOScale(Vector3.zero, 0.3f).SetEase(Ease.InBack).ToUniTask();
             Destroy(target.gameObject);
-            _ = TryCompleteLevel();
+            var isCompleted = await TryCompleteLevel();
+            if (!isCompleted)
+            {
+                SmallPauseGame();
+            }
+            else
+            {
+                Time.timeScale = 1f;
+            }
+        }
+        else
+        {
+            Time.timeScale = 1f;
         }
     }
 
+    private void SmallPauseGame()
+    {
+        DOTween.Sequence().InsertCallback(0.07f, () => { Time.timeScale = 1f; }).SetUpdate(true);
+        Time.timeScale = 0f;
+    }
+
     #endregion
+
+    [NaughtyAttributes.Button]
+    private void SmallShake()
+    {
+        var dool = E.DynamicContainer.DynamicParent;
+        dool.DOKill(true);
+        Sequence sequence = DOTween.Sequence();
+        sequence.Append(dool.DOShakePosition(0.2f, .8f));
+        sequence.OnUpdate(() =>
+        {
+            _camFollow.FollowOffset.x = dool.position.x;
+            _camFollow.FollowOffset.y = dool.position.y;
+        });
+        sequence.OnComplete(() =>
+        {
+            _camFollow.FollowOffset.x = 0f;
+            _camFollow.FollowOffset.y = 0f;
+        });
+    }
+
+    private void LongShake()
+    {
+        var dool = E.DynamicContainer.DynamicParent;
+        dool.DOKill(true);
+        Sequence sequence = DOTween.Sequence();
+        sequence.Append(dool.DOShakePosition(0.3f, 1.5f));
+        sequence.OnUpdate(() =>
+        {
+            _camFollow.FollowOffset.x = dool.position.x;
+            _camFollow.FollowOffset.y = dool.position.y;
+        });
+        sequence.OnComplete(() =>
+        {
+            _camFollow.FollowOffset.x = 0f;
+            _camFollow.FollowOffset.y = 0f;
+        });
+    }
 
     private void SetMusic(float obj)
     {
