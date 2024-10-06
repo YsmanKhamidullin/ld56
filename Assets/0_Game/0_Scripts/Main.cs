@@ -10,6 +10,7 @@ using TMPEffects.Components;
 using TMPro;
 using Unity.Cinemachine;
 using UnityEngine;
+using UnityEngine.Audio;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using Random = UnityEngine.Random;
@@ -101,6 +102,7 @@ public class Main : MonoBehaviour
     private List<Ant> _meleeEnemies;
     private List<Ant> _rangeEnemies;
     private List<Ant> _bossEnemies;
+    private List<Ant> _eggEnemies;
     private List<Ant> _notEnemies;
     private bool _isUpateEnemies;
 
@@ -127,9 +129,6 @@ public class Main : MonoBehaviour
     private float _currentDashTime = 0.2f;
 
     [Header("SFX")]
-    [SerializeField]
-    private List<AudioSource> _bgMusics;
-
     [SerializeField]
     private AudioSource _enemyDieSfx;
 
@@ -160,9 +159,6 @@ public class Main : MonoBehaviour
         if (SceneManager.GetActiveScene().buildIndex != 0)
         {
             _ = StartGame(Game.Difficulty);
-        }
-        else
-        {
         }
     }
 
@@ -208,19 +204,14 @@ public class Main : MonoBehaviour
         _meleeEnemies = allAnts.Where(t => t.gameObject.CompareTag("EnemyMelee")).ToList();
         _rangeEnemies = allAnts.Where(t => t.gameObject.CompareTag("EnemyRange")).ToList();
         _notEnemies = allAnts.Where(t => t.gameObject.CompareTag("NotEnemy")).ToList();
+        _eggEnemies = allAnts.Where(t => t.gameObject.CompareTag("Egg")).ToList();
+        _bossEnemies = allAnts.Where(t => t.gameObject.CompareTag("EnemyBoss")).ToList();
     }
 
 
     private void InitializePlayer()
     {
         _player.gameObject.SetActive(true);
-    }
-
-    public enum Difficulty
-    {
-        Easy,
-        Normal,
-        Hard
     }
 
     private void InitializeCanvas()
@@ -238,6 +229,8 @@ public class Main : MonoBehaviour
         _restartLevelButton.onClick.AddListener(RestartLevel);
         _restartGameButton.onClick.AddListener(RestartGame);
         _restartGameAfterCompleteButton.onClick.AddListener(RestartGameAfterComplete);
+        SetSound(Game.SoundValue);
+        SetMusic(Game.MusicValue);
         _soundSlider.SetValueWithoutNotify(Game.SoundValue);
         _musicSlider.SetValueWithoutNotify(Game.MusicValue);
 
@@ -255,12 +248,7 @@ public class Main : MonoBehaviour
 
     private void ChangeMusicBg(int arg0)
     {
-        foreach (var bgMusic in _bgMusics)
-        {
-            bgMusic.Stop();
-        }
-    
-        _bgMusics[arg0].Play();
+        MusicDontDestroy.Instance.ChangeTrack(arg0);
     }
 
     private void RestartGameAfterComplete()
@@ -328,6 +316,7 @@ public class Main : MonoBehaviour
     private async UniTask GameOver()
     {
         Game.IsPause = true;
+        DropMovement();
         Time.timeScale = 1f;
         _levelFailSfx.Play();
 
@@ -338,7 +327,7 @@ public class Main : MonoBehaviour
 
     private async UniTask<bool> TryCompleteLevel()
     {
-        if (_meleeEnemies.Count == 0 && _rangeEnemies.Count == 0)
+        if (_meleeEnemies.Count == 0 && _rangeEnemies.Count == 0 && _eggEnemies.Count == 0 && _bossEnemies.Count == 0)
         {
             DOTween.KillAll();
 
@@ -362,6 +351,7 @@ public class Main : MonoBehaviour
     {
         _player.rb.linearVelocity = Vector2.zero;
         Game.IsPause = true;
+        DropMovement();
         Time.timeScale = 1f;
 
         _levelUpSfx.Play();
@@ -442,6 +432,9 @@ public class Main : MonoBehaviour
     {
         Game.IsPause = true;
         Game.IsByInputPause = true;
+
+        DropMovement();
+
         _pauseMenu.gameObject.SetActive(true);
         _pauseMenu.alpha = 0f;
         await _pauseMenu.FadeIn();
@@ -458,6 +451,38 @@ public class Main : MonoBehaviour
     #endregion
 
     #region Enemy
+
+    private void DropMovement()
+    {
+        _player.rb.linearVelocity = Vector2.zero;
+
+        foreach (var ant in _meleeEnemies)
+        {
+            ant.rb.linearVelocity = Vector2.zero;
+            ant.Animator.SetBool(Walk, false);
+        }
+
+        foreach (var ant in _rangeEnemies)
+        {
+            ant.rb.linearVelocity = Vector2.zero;
+        }
+
+        for (var i = 0; i < _eggEnemies.Count; i++)
+        {
+            var ant = _eggEnemies[i];
+            ant.rb.linearVelocity = Vector2.zero;
+        }
+
+        for (var i = 0; i < _bossEnemies.Count; i++)
+        {
+            var ant = _eggEnemies[i];
+            ant.rb.linearVelocity = Vector2.zero;
+            if (ant.Animator != null)
+            {
+                ant.Animator.SetBool(Walk, false);
+            }
+        }
+    }
 
     private void UpdateEnemies()
     {
@@ -500,6 +525,65 @@ public class Main : MonoBehaviour
             {
                 RangeEnemyAttack(ant, _player);
             }
+        }
+
+        for (var i = 0; i < _eggEnemies.Count; i++)
+        {
+            var ant = _eggEnemies[i];
+            if (Vector2.Distance(ant.transform.position, _player.transform.position) > 20)
+            {
+                continue;
+            }
+
+            if (DOTween.IsTweening(ant.transform) == false)
+            {
+                ant.transform.DOScale(2.2f, ant.AttackDelay);
+            }
+
+            bool isCanAttack = IsEnemyCanAttack(ant);
+            if (isCanAttack)
+            {
+                SpawnAntFromEgg(ant);
+                _eggEnemies.Remove(ant);
+                Destroy(ant.gameObject);
+            }
+        }
+
+        for (var i = 0; i < _bossEnemies.Count; i++)
+        {
+            var ant = _bossEnemies[i];
+            if (Vector2.Distance(ant.transform.position, _player.transform.position) > 20)
+            {
+                continue;
+            }
+
+            bool isCanAttack = IsEnemyCanAttack(ant);
+            if (isCanAttack)
+            {
+            }
+        }
+    }
+
+    [SerializeField]
+    private Ant _antFromEggPrefab;
+
+    private void SpawnAntFromEgg(Ant ant)
+    {
+        var newEnemy = Instantiate(_antFromEggPrefab, ant.transform.position, Quaternion.identity);
+        switch (newEnemy.tag)
+        {
+            case "EnemyMelee":
+                _meleeEnemies.Add(newEnemy);
+                break;
+            case "EnemyRange":
+                _rangeEnemies.Add(newEnemy);
+                break;
+            case "EnemyBoss":
+                _bossEnemies.Add(newEnemy);
+                break;
+            case "Egg":
+                _eggEnemies.Add(newEnemy);
+                break;
         }
     }
 
@@ -556,6 +640,13 @@ public class Main : MonoBehaviour
 
     private bool IsEnemyCanAttack(Ant ant)
     {
+        if (ant.IsPassFirstAttack)
+        {
+            ant.LastAttackTime = Time.time;
+            ant.IsPassFirstAttack = false;
+            return false;
+        }
+
         return Time.time - ant.LastAttackTime > ant.AttackDelay + Random.Range(0, 0.5f);
     }
 
@@ -633,6 +724,11 @@ public class Main : MonoBehaviour
         bool isDash = Input.GetMouseButtonDown(0);
         if (isDash && _isCanDash)
         {
+            _isCanDash = false;
+            _isPlayerInvincible = true;
+            _currentDashTime = _dashTime; // Reset the dash timer.
+            _isPlayerDash = true;
+            _player.LastAttackTime = Time.time;
             await PlayerDash(_player.transform.up);
             _player.LastAttackTime = Time.time;
         }
@@ -646,17 +742,14 @@ public class Main : MonoBehaviour
 
     private async UniTask PlayerDash(Vector2 direction)
     {
-        _isCanDash = false;
-        _isPlayerInvincible = true;
-        _currentDashTime = _dashTime; // Reset the dash timer.
-
-        _isPlayerDash = true;
-
         _dashSfx.Play();
-
         var startZ = _camFollow.FollowOffset.z;
         _player.Animator.Play("dash");
-        SmallZoom(startZ);
+        if (!_isZooming)
+        {
+            SmallZoom(startZ);
+        }
+
         while (_currentDashTime > 0f)
         {
             _currentDashTime -= Time.deltaTime; // Lower the dash timer each frame.
@@ -667,22 +760,30 @@ public class Main : MonoBehaviour
             await UniTask.Yield();
         }
 
-        UnZoom(startZ);
+        if (_isZooming)
+        {
+            UnZoom(startZ);
+        }
+
         _player.rb.linearVelocity = Vector2.zero;
         _isPlayerDash = false;
         _isPlayerInvincible = false;
     }
 
+
+    private bool _isZooming;
+
     private void SmallZoom(float startZ)
     {
+        _isZooming = true;
         DOTween.To(() => _camFollow.FollowOffset.z, x => _camFollow.FollowOffset.z = x, startZ + 1f, 0.3f)
             .SetEase(Ease.Flash);
     }
 
     private void UnZoom(float startZ)
     {
-        DOTween.To(() => _camFollow.FollowOffset.z, x => _camFollow.FollowOffset.z = x, startZ, 0.2f)
-            .SetEase(Ease.Flash);
+        DOTween.To(() => _camFollow.FollowOffset.z, x => _camFollow.FollowOffset.z = x, Mathf.Min(-10, startZ), 0.2f)
+            .SetEase(Ease.Flash).OnComplete(() => _isZooming = false);
     }
 
     private void TryDestroyNearProjectiles()
@@ -714,6 +815,24 @@ public class Main : MonoBehaviour
             if (_player.transform.IsNear(enemy.transform, _player.AttackRange))
             {
                 _ = PlayerAttack(enemy, _rangeEnemies);
+            }
+        }
+
+        for (var i = 0; i < _eggEnemies.Count; i++)
+        {
+            var enemy = _eggEnemies[i];
+            if (_player.transform.IsNear(enemy.transform, _player.AttackRange))
+            {
+                _ = PlayerAttack(enemy, _eggEnemies);
+            }
+        }
+
+        for (var i = 0; i < _bossEnemies.Count; i++)
+        {
+            var enemy = _bossEnemies[i];
+            if (_player.transform.IsNear(enemy.transform, _player.AttackRange))
+            {
+                _ = PlayerAttack(enemy, _bossEnemies);
             }
         }
 
@@ -807,13 +926,20 @@ public class Main : MonoBehaviour
         });
     }
 
-    private void SetMusic(float obj)
+    [SerializeField]
+    private AudioMixer _masterMixer;
+
+    public void SetMusic(float arg0)
     {
-        Game.MusicValue = obj;
+        Game.MusicValue = arg0;
+        float v = arg0 > 0 ? Mathf.Log10(arg0) * 20 : -80;
+        _masterMixer.SetFloat("MusicVolume", v);
     }
 
-    private void SetSound(float obj)
+    public void SetSound(float arg0)
     {
-        Game.SoundValue = obj;
+        Game.SoundValue = arg0;
+        float v = arg0 > 0 ? Mathf.Log10(arg0) * 20 : -80;
+        _masterMixer.SetFloat("SoundVolume", v);
     }
 }

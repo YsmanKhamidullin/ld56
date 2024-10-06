@@ -4,6 +4,7 @@ public class Ant : MonoBehaviour
 {
     public int Health;
     public int Damage;
+    public bool IsPassFirstAttack;
     public float MoveSpeed;
     public float AttackRange;
     public float AttackDelay;

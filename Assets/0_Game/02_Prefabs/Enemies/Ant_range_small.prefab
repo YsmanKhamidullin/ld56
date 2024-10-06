@@ -552,11 +552,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b1b56ec3a31c42aab1b181f310887bdb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Health: 3
+  Health: 4
   Damage: 1
-  MoveSpeed: 1
+  IsPassFirstAttack: 0
+  MoveSpeed: 0
   AttackRange: 1
-  AttackDelay: 1
+  AttackDelay: 0.5
   LastAttackTime: 0
   InvinsibleTime: 0.1
   LastGetDamageTime: 0
