@@ -56,6 +56,12 @@ public class Main : MonoBehaviour
     private TMPWriter _gameCompleteThanksLabel;
 
     [SerializeField]
+    private TMP_Dropdown _selectMusicDropdownMenu;
+
+    [SerializeField]
+    private TMP_Dropdown _selectMusicDropdownPause;
+
+    [SerializeField]
     private Button _gameStartEasyButton;
 
     [SerializeField]
@@ -120,6 +126,22 @@ public class Main : MonoBehaviour
     private bool _isPlayerDash;
     private float _currentDashTime = 0.2f;
 
+    [Header("SFX")]
+    [SerializeField]
+    private List<AudioSource> _bgMusics;
+
+    [SerializeField]
+    private AudioSource _enemyDieSfx;
+
+    [SerializeField]
+    private AudioSource _dashSfx;
+
+    [SerializeField]
+    private AudioSource _levelFailSfx;
+
+    [SerializeField]
+    private AudioSource _levelUpSfx;
+
     [Header("Debug")]
     [SerializeField]
     private TextMeshProUGUI _debugLabel;
@@ -171,7 +193,11 @@ public class Main : MonoBehaviour
         }
 
         Game.IsPause = true;
-        await _gameStartMenu.FadeOut();
+        if (SceneManager.GetActiveScene().buildIndex == 0)
+        {
+            await _gameStartMenu.FadeOut();
+        }
+
         _gameStartMenu.gameObject.SetActive(false);
         Game.IsPause = false;
     }
@@ -215,6 +241,9 @@ public class Main : MonoBehaviour
         _soundSlider.SetValueWithoutNotify(Game.SoundValue);
         _musicSlider.SetValueWithoutNotify(Game.MusicValue);
 
+        _selectMusicDropdownMenu.onValueChanged.AddListener(ChangeMusicBg);
+        _selectMusicDropdownPause.onValueChanged.AddListener(ChangeMusicBg);
+
         _soundSlider.OnValueChanged += SetSound;
         _musicSlider.OnValueChanged += SetMusic;
         _gameStartMenu.gameObject.SetActive(true);
@@ -222,6 +251,16 @@ public class Main : MonoBehaviour
         _pauseMenu.gameObject.SetActive(false);
         _levelCompleteMenu.gameObject.SetActive(false);
         _gameCompleteMenu.gameObject.SetActive(false);
+    }
+
+    private void ChangeMusicBg(int arg0)
+    {
+        foreach (var bgMusic in _bgMusics)
+        {
+            bgMusic.Stop();
+        }
+    
+        _bgMusics[arg0].Play();
     }
 
     private void RestartGameAfterComplete()
@@ -289,6 +328,9 @@ public class Main : MonoBehaviour
     private async UniTask GameOver()
     {
         Game.IsPause = true;
+        Time.timeScale = 1f;
+        _levelFailSfx.Play();
+
         _gameOverMenu.alpha = 0f;
         _gameOverMenu.gameObject.SetActive(true);
         await _gameOverMenu.FadeIn(1f);
@@ -320,10 +362,14 @@ public class Main : MonoBehaviour
     {
         _player.rb.linearVelocity = Vector2.zero;
         Game.IsPause = true;
+        Time.timeScale = 1f;
+
+        _levelUpSfx.Play();
+
         _levelCompleteMenu.alpha = 0f;
         _levelCompleteCounterLabel.text = "";
         _levelCompleteMenu.gameObject.SetActive(true);
-        await _levelCompleteMenu.FadeIn(1f);
+        await _levelCompleteMenu.FadeIn(.5f);
         _levelCompleteCounterLabel.text = "Next Level is in 3...";
         await UniTask.Delay(1000);
         _levelCompleteCounterLabel.text = "Next Level is in 2...";
@@ -467,9 +513,9 @@ public class Main : MonoBehaviour
 
     private void RangeEnemyAttack(Ant ant, Ant player)
     {
-        var projectile = Instantiate(ant.ProjectilePrefab, ant.transform.position, Quaternion.identity);
-        projectile.up = (_player.transform.position - ant.transform.position).normalized;
-        AddProjectileAndDestroyAfterTime(projectile);
+        var projectilesParent = Instantiate(ant.ProjectilePrefab, ant.transform.position, Quaternion.identity);
+        projectilesParent.up = (_player.transform.position - ant.transform.position).normalized;
+        AddProjectileAndDestroyAfterTime(projectilesParent);
         ant.LastAttackTime = Time.time;
     }
 
@@ -477,14 +523,16 @@ public class Main : MonoBehaviour
     private float _projectileAttackRange = 1f;
     private static readonly int Walk = Animator.StringToHash("walk");
 
-    private void AddProjectileAndDestroyAfterTime(Transform projectile)
+    private void AddProjectileAndDestroyAfterTime(Transform projectilesParent)
     {
-        _projectiles.Add(projectile);
-        projectile.DOScale(Vector3.zero, 3).SetEase(Ease.InBack).OnComplete(() =>
+        for (int i = 0; i < projectilesParent.childCount; i++)
         {
-            _projectiles.Remove(projectile);
-            Destroy(projectile.gameObject, 3f);
-        });
+            var child = projectilesParent.GetChild(i);
+            child.DOScale(Vector3.zero, 3).SetEase(Ease.InBack).OnComplete(() => { _projectiles.Remove(child); });
+            _projectiles.Add(child);
+        }
+
+        Destroy(projectilesParent.gameObject, 3.05f);
     }
 
     private void UpdateEnemyProjectiles()
@@ -604,6 +652,8 @@ public class Main : MonoBehaviour
 
         _isPlayerDash = true;
 
+        _dashSfx.Play();
+
         var startZ = _camFollow.FollowOffset.z;
         _player.Animator.Play("dash");
         SmallZoom(startZ);
@@ -686,7 +736,7 @@ public class Main : MonoBehaviour
             return;
         }
 
-        Time.timeScale = 0.6f;
+        Time.timeScale = 0.5f;
 
         target.LastGetDamageTime = Time.time;
         target.transform.DOPunchScale(1.015f * Vector3.one, 0.15f, 1, 0.1f).SetEase(Ease.Flash);
@@ -696,32 +746,26 @@ public class Main : MonoBehaviour
             target.HitImpactSprite.DOFade(1f, 0.1f).SetEase(Ease.Flash).SetLoops(2, LoopType.Yoyo);
         }
 
+        if (target.SlashMaskTransform != null)
+        {
+            target.SlashMaskTransform.DOScaleY(30f, 0.25f).SetEase(Ease.OutExpo).OnComplete(() =>
+            {
+                target.SlashMaskTransform.localScale = new Vector3(15, 0, 15);
+            });
+        }
+
         SmallShake();
         if (target.Health <= 0)
         {
+            _enemyDieSfx.Play();
+
             targetArray.Remove(target);
             await target.transform.DOScale(Vector3.zero, 0.3f).SetEase(Ease.InBack).ToUniTask();
             Destroy(target.gameObject);
             var isCompleted = await TryCompleteLevel();
-            if (!isCompleted)
-            {
-                SmallPauseGame();
-            }
-            else
-            {
-                Time.timeScale = 1f;
-            }
         }
-        else
-        {
-            Time.timeScale = 1f;
-        }
-    }
 
-    private void SmallPauseGame()
-    {
-        DOTween.Sequence().InsertCallback(0.07f, () => { Time.timeScale = 1f; }).SetUpdate(true);
-        Time.timeScale = 0f;
+        Time.timeScale = 1f;
     }
 
     #endregion

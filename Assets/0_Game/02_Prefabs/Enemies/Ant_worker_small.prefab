@@ -318,6 +318,18 @@ PrefabInstance:
       value: 6
       objectReference: {fileID: 0}
     - target: {fileID: 6845189747856634590, guid: 43b84d69bdd66a945923324d8012d692, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 0.9
+      objectReference: {fileID: 0}
+    - target: {fileID: 6845189747856634590, guid: 43b84d69bdd66a945923324d8012d692, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 0.9
+      objectReference: {fileID: 0}
+    - target: {fileID: 6845189747856634590, guid: 43b84d69bdd66a945923324d8012d692, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 0.9
+      objectReference: {fileID: 0}
+    - target: {fileID: 6845189747856634590, guid: 43b84d69bdd66a945923324d8012d692, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
       objectReference: {fileID: 0}
@@ -355,6 +367,10 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6845189747856634590, guid: 43b84d69bdd66a945923324d8012d692, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6845189747856634590, guid: 43b84d69bdd66a945923324d8012d692, type: 3}
+      propertyPath: m_ConstrainProportionsScale
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8008747810166287545, guid: 43b84d69bdd66a945923324d8012d692, type: 3}
@@ -446,7 +462,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Health: 3
   Damage: 1
-  MoveSpeed: 5
+  MoveSpeed: 5.5
   AttackRange: 1
   AttackDelay: 1.5
   LastAttackTime: 0
@@ -456,6 +472,7 @@ MonoBehaviour:
   ProjectilePrefab: {fileID: 0}
   HitImpactSprite: {fileID: 2402446374028605450}
   Animator: {fileID: 5749167739304787381}
+  SlashMaskTransform: {fileID: 7266146608579771340}
 --- !u!95 &5749167739304787381 stripped
 Animator:
   m_CorrespondingSourceObject: {fileID: 5464621435057394221, guid: 43b84d69bdd66a945923324d8012d692, type: 3}
@@ -464,5 +481,10 @@ Animator:
 --- !u!4 &6548768675423493446 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6845189747856634590, guid: 43b84d69bdd66a945923324d8012d692, type: 3}
+  m_PrefabInstance: {fileID: 296984306485653400}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &7266146608579771340 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 6974264312860709972, guid: 43b84d69bdd66a945923324d8012d692, type: 3}
   m_PrefabInstance: {fileID: 296984306485653400}
   m_PrefabAsset: {fileID: 0}

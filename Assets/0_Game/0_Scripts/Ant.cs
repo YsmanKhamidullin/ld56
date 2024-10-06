@@ -14,4 +14,5 @@ public class Ant : MonoBehaviour
     public Transform ProjectilePrefab;
     public SpriteRenderer HitImpactSprite;
     public Animator Animator;
+    public Transform SlashMaskTransform;
 }
