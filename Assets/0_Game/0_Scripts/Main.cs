@@ -3,9 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Cysharp.Threading.Tasks;
 using DG.Tweening;
-using DG.Tweening.Core;
-using DG.Tweening.Core.Enums;
-using DG.Tweening.Plugins.Options;
 using TMPEffects.Components;
 using TMPro;
 using Unity.Cinemachine;
@@ -32,6 +29,9 @@ public class Main : MonoBehaviour
     private CinemachineFollow _camFollow;
 
     [Header("Canvas")]
+    [SerializeField]
+    private CanvasGroup _upgradeWindow;
+
     [SerializeField]
     private CanvasGroup _pauseMenu;
 
@@ -79,6 +79,12 @@ public class Main : MonoBehaviour
 
     [SerializeField]
     private Button _restartGameAfterCompleteButton;
+
+    [SerializeField]
+    private Button _upgradeEnlargeButton;
+
+    [SerializeField]
+    private Button _upgradeShrinkButton;
 
     [SerializeField]
     private CustomSlider _soundSlider;
@@ -160,12 +166,23 @@ public class Main : MonoBehaviour
 
         Game.IsPause = true;
 
+        bool isInGameStart = SceneManager.GetActiveScene().buildIndex == 0;
+        if (isInGameStart)
+        {
+            Game.UpgradeSize = 0;
+            Game.UpgradeAttack = 0;
+            Game.UpgradeHealth = 0;
+            Game.UpgradeAttackRange = 0;
+            Game.UpgradeDash = 0;
+            Game.UpgradeSpeed = 0;
+        }
+
         LoadData();
         InitializeCanvas();
         InitializePlayer();
         InitializeEnemies();
         UpdateHUD();
-        if (SceneManager.GetActiveScene().buildIndex != 0)
+        if (!isInGameStart)
         {
             _ = StartGame(Game.Difficulty);
         }
@@ -226,7 +243,20 @@ public class Main : MonoBehaviour
 
     private void InitializePlayer()
     {
+        ApplyPlayerUpgrades();
         _player.gameObject.SetActive(true);
+    }
+
+    private void ApplyPlayerUpgrades()
+    {
+        _player.transform.localScale += new Vector3(0.075f, 0.075f, 0) * Game.UpgradeSize;
+        _player.Damage += Game.UpgradeAttack;
+        _player.Health += Game.UpgradeHealth;
+        _player.AttackRange += 0.1f * Game.UpgradeAttackRange;
+        _player.AttackDelay -= 0.005f * Game.UpgradeDash;
+        _player.MoveSpeed += 0.3f * Game.UpgradeSpeed;
+
+        _camFollow.FollowOffset.z -= 0.075f * Game.UpgradeSize;
     }
 
     private void InitializeCanvas()
@@ -244,6 +274,10 @@ public class Main : MonoBehaviour
         _restartLevelButton.onClick.AddListener(RestartLevel);
         _restartGameButton.onClick.AddListener(RestartGame);
         _restartGameAfterCompleteButton.onClick.AddListener(RestartGameAfterComplete);
+
+        _upgradeEnlargeButton.onClick.AddListener(SelectEnlargeUpgrade);
+        _upgradeShrinkButton.onClick.AddListener(SelectShrinkUpgrade);
+
         SetSound(Game.SoundValue);
         SetMusic(Game.MusicValue);
         _soundSlider.SetValueWithoutNotify(Game.SoundValue);
@@ -258,6 +292,27 @@ public class Main : MonoBehaviour
         _pauseMenu.gameObject.SetActive(false);
         _levelCompleteMenu.gameObject.SetActive(false);
         _gameCompleteMenu.gameObject.SetActive(false);
+    }
+
+    private void SelectEnlargeUpgrade()
+    {
+        Game.UpgradeSize += 1;
+        Game.UpgradeAttack += 1;
+        Game.UpgradeHealth += 1;
+        Game.UpgradeAttackRange += 1;
+        Game.UpgradeDash -= 1;
+        _levelUpSfx.Play();
+        _ = LevelComplete();
+    }
+
+    private void SelectShrinkUpgrade()
+    {
+        Game.UpgradeSize -= 1;
+        Game.UpgradeSpeed += 1;
+        Game.UpgradeDash += 1;
+        Game.UpgradeAttackRange -= 1;
+        _levelUpSfx.Play();
+        _ = LevelComplete();
     }
 
     private void ChangeMusicBg(int arg0)
@@ -353,7 +408,7 @@ public class Main : MonoBehaviour
             }
             else
             {
-                await LevelComplete();
+                await ShowUpgradeMenu();
             }
 
             return true;
@@ -362,15 +417,19 @@ public class Main : MonoBehaviour
         return false;
     }
 
-    private async UniTask LevelComplete()
+    private async UniTask ShowUpgradeMenu()
     {
-        _player.rb.linearVelocity = Vector2.zero;
         Game.IsPause = true;
         DropMovement();
         Time.timeScale = 1f;
+        _upgradeWindow.alpha = 0f;
+        _upgradeWindow.gameObject.SetActive(true);
+        await _upgradeWindow.FadeIn(0.5f);
+        
+    }
 
-        _levelUpSfx.Play();
-
+    private async UniTask LevelComplete()
+    {
         _levelCompleteMenu.alpha = 0f;
         _levelCompleteCounterLabel.text = "";
         _levelCompleteMenu.gameObject.SetActive(true);
@@ -782,7 +841,7 @@ public class Main : MonoBehaviour
             _player.LastAttackTime = Time.time;
         }
 
-        if (_player.LastAttackTime > 0)
+        if (_player.LastAttackTime > 0 && _isPlayerDash == false)
         {
             _dashSlider.value = Mathf.Clamp01((Time.time - _player.LastAttackTime) / _player.AttackDelay);
             _isCanDash = Time.time - _player.LastAttackTime > _player.AttackDelay;
@@ -837,7 +896,7 @@ public class Main : MonoBehaviour
     private void SmallZoom(float startZ)
     {
         _isZooming = true;
-        DOTween.To(() => _camFollow.FollowOffset.z, x => _camFollow.FollowOffset.z = x, startZ + 1f, 0.3f)
+        DOTween.To(() => _camFollow.FollowOffset.z, x => _camFollow.FollowOffset.z = x, startZ + 1.5f, 0.3f)
             .SetEase(Ease.Flash);
     }
 
