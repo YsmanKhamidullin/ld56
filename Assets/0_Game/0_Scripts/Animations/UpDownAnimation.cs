@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using DG.Tweening;
 using NaughtyAttributes;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 public class UpDownAnimation : MonoBehaviour
 {
@@ -16,12 +17,19 @@ public class UpDownAnimation : MonoBehaviour
     private Ease _ease = Ease.Linear;
 
     [SerializeField]
+    private bool _isRandomize;
+
+    [SerializeField]
     [HideInInspector]
     private bool _previewIsAdded;
 
     private void Start()
     {
         float startPosY = transform.localPosition.y;
+        if (_isRandomize)
+        {
+            _time += Random.value;
+        }
         transform.DOLocalMoveY(startPosY + _addableY, _time).SetEase(_ease).SetLoops(-1, LoopType.Yoyo);
     }
 

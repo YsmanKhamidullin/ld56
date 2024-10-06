@@ -57,9 +57,6 @@ public class Main : MonoBehaviour
     private TMPWriter _gameCompleteThanksLabel;
 
     [SerializeField]
-    private TMP_Dropdown _selectMusicDropdownMenu;
-
-    [SerializeField]
     private TMP_Dropdown _selectMusicDropdownPause;
 
     [SerializeField]
@@ -90,12 +87,22 @@ public class Main : MonoBehaviour
     private CustomSlider _musicSlider;
 
     [SerializeField]
+    private GameObject _anime;
+
+    [SerializeField]
     private List<Image> _playerHealthImages;
+
+
+    [SerializeField]
+    private SpriteRenderer _trailPrefab;
 
     [SerializeField]
     private float _projectileSpeed;
 
     [Header("Enemies")]
+    [SerializeField]
+    private Ant _eggPrefab;
+
     [SerializeField]
     private Transform _startUpdateEnemeiesPoint;
 
@@ -152,6 +159,8 @@ public class Main : MonoBehaviour
         DOTween.Init().SetCapacity(200, 50);
 
         Game.IsPause = true;
+
+        LoadData();
         InitializeCanvas();
         InitializePlayer();
         InitializeEnemies();
@@ -160,6 +169,12 @@ public class Main : MonoBehaviour
         {
             _ = StartGame(Game.Difficulty);
         }
+    }
+
+    private void LoadData()
+    {
+        var musicNumber = PlayerPrefs.GetInt("MusicNumber", 1);
+        ChangeMusicBg(musicNumber);
     }
 
     private void OnDestroy()
@@ -234,7 +249,6 @@ public class Main : MonoBehaviour
         _soundSlider.SetValueWithoutNotify(Game.SoundValue);
         _musicSlider.SetValueWithoutNotify(Game.MusicValue);
 
-        _selectMusicDropdownMenu.onValueChanged.AddListener(ChangeMusicBg);
         _selectMusicDropdownPause.onValueChanged.AddListener(ChangeMusicBg);
 
         _soundSlider.OnValueChanged += SetSound;
@@ -248,6 +262,7 @@ public class Main : MonoBehaviour
 
     private void ChangeMusicBg(int arg0)
     {
+        PlayerPrefs.SetInt("MusicNumber", arg0);
         MusicDontDestroy.Instance.ChangeTrack(arg0);
     }
 
@@ -456,14 +471,16 @@ public class Main : MonoBehaviour
     {
         _player.rb.linearVelocity = Vector2.zero;
 
-        foreach (var ant in _meleeEnemies)
+        for (var i = 0; i < _meleeEnemies.Count; i++)
         {
+            var ant = _meleeEnemies[i];
             ant.rb.linearVelocity = Vector2.zero;
             ant.Animator.SetBool(Walk, false);
         }
 
-        foreach (var ant in _rangeEnemies)
+        for (var i = 0; i < _rangeEnemies.Count; i++)
         {
+            var ant = _rangeEnemies[i];
             ant.rb.linearVelocity = Vector2.zero;
         }
 
@@ -475,7 +492,7 @@ public class Main : MonoBehaviour
 
         for (var i = 0; i < _bossEnemies.Count; i++)
         {
-            var ant = _eggEnemies[i];
+            var ant = _bossEnemies[i];
             ant.rb.linearVelocity = Vector2.zero;
             if (ant.Animator != null)
             {
@@ -486,8 +503,9 @@ public class Main : MonoBehaviour
 
     private void UpdateEnemies()
     {
-        foreach (var ant in _meleeEnemies)
+        for (var i = 0; i < _meleeEnemies.Count; i++)
         {
+            var ant = _meleeEnemies[i];
             if (Vector2.Distance(ant.transform.position, _player.transform.position) > 20)
             {
                 continue;
@@ -513,11 +531,19 @@ public class Main : MonoBehaviour
             }
         }
 
-        foreach (var ant in _rangeEnemies)
+        for (var i = 0; i < _rangeEnemies.Count; i++)
         {
+            var ant = _rangeEnemies[i];
             if (Vector2.Distance(ant.transform.position, _player.transform.position) > 20)
             {
                 continue;
+            }
+
+            if (ant.MoveSpeed > 0)
+            {
+                var dir = (_player.transform.position - ant.transform.position).normalized;
+                var velocity = dir * ant.MoveSpeed;
+                ant.rb.linearVelocity = velocity;
             }
 
             bool isCanAttack = IsEnemyCanAttack(ant);
@@ -535,11 +561,7 @@ public class Main : MonoBehaviour
                 continue;
             }
 
-            if (DOTween.IsTweening(ant.transform) == false)
-            {
-                ant.transform.DOScale(2.2f, ant.AttackDelay);
-            }
-
+            ant.transform.localScale += Vector3.one * Time.deltaTime;
             bool isCanAttack = IsEnemyCanAttack(ant);
             if (isCanAttack)
             {
@@ -557,11 +579,37 @@ public class Main : MonoBehaviour
                 continue;
             }
 
+            var dirToPlayer = (_player.transform.position - ant.transform.position).normalized;
+            // Move
+            if (ant.transform.IsNear(_player.transform, ant.AttackRange))
+            {
+                ant.Animator.SetBool(Walk, true);
+                var velocity = -dirToPlayer * ant.MoveSpeed;
+                ant.rb.linearVelocity = velocity;
+            }
+            else
+            {
+                ant.Animator.SetBool(Walk, false);
+                ant.rb.linearVelocity = Vector2.zero;
+            }
+
+            ant.transform.up = dirToPlayer;
+
+
             bool isCanAttack = IsEnemyCanAttack(ant);
             if (isCanAttack)
             {
+                RangeEnemyAttack(ant, _player);
+                var randomPos = (Vector2)ant.transform.position + Random.insideUnitCircle * 3;
+                TrySpawnEgg(randomPos);
             }
         }
+    }
+
+    private void TrySpawnEgg(Vector2 randomPos)
+    {
+        var newEnemy = Instantiate(_eggPrefab, randomPos, Quaternion.identity);
+        _eggEnemies.Add(newEnemy);
     }
 
     [SerializeField]
@@ -604,7 +652,6 @@ public class Main : MonoBehaviour
     }
 
     private List<Transform> _projectiles = new();
-    private float _projectileAttackRange = 1f;
     private static readonly int Walk = Animator.StringToHash("walk");
 
     private void AddProjectileAndDestroyAfterTime(Transform projectilesParent)
@@ -621,10 +668,12 @@ public class Main : MonoBehaviour
 
     private void UpdateEnemyProjectiles()
     {
-        for (var i = 0; i < _projectiles.Count; i++)
+        var count = _projectiles.Count;
+        for (var i = 0; i < count; i++)
         {
             var projectile = _projectiles[i];
-            if (!projectile.gameObject.activeSelf)
+
+            if (projectile == null || !projectile.gameObject.activeSelf)
             {
                 continue;
             }
@@ -721,7 +770,7 @@ public class Main : MonoBehaviour
 
     private async UniTask UpdateDash()
     {
-        bool isDash = Input.GetMouseButtonDown(0);
+        bool isDash = Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.LeftShift);
         if (isDash && _isCanDash)
         {
             _isCanDash = false;
@@ -743,6 +792,9 @@ public class Main : MonoBehaviour
     private async UniTask PlayerDash(Vector2 direction)
     {
         _dashSfx.Play();
+        _anime.transform.localScale = Vector3.one;
+        _anime.SetActive(true);
+        _anime.transform.DOScale(1.5f * Vector3.one, _dashTime);
         var startZ = _camFollow.FollowOffset.z;
         _player.Animator.Play("dash");
         if (!_isZooming)
@@ -765,9 +817,18 @@ public class Main : MonoBehaviour
             UnZoom(startZ);
         }
 
+        _anime.SetActive(false);
         _player.rb.linearVelocity = Vector2.zero;
         _isPlayerDash = false;
         _isPlayerInvincible = false;
+    }
+
+    private void SpawnDashTrail()
+    {
+        var trail = Instantiate(_trailPrefab, _player.transform.position, Quaternion.identity);
+        trail.transform.right = _player.transform.up;
+        trail.DOFade(0.2f, 0.1f);
+        Destroy(trail.gameObject, 0.15f);
     }
 
 
@@ -782,7 +843,7 @@ public class Main : MonoBehaviour
 
     private void UnZoom(float startZ)
     {
-        DOTween.To(() => _camFollow.FollowOffset.z, x => _camFollow.FollowOffset.z = x, Mathf.Min(-10, startZ), 0.2f)
+        DOTween.To(() => _camFollow.FollowOffset.z, x => _camFollow.FollowOffset.z = x, Mathf.Min(-12, startZ), 0.2f)
             .SetEase(Ease.Flash).OnComplete(() => _isZooming = false);
     }
 
@@ -855,8 +916,11 @@ public class Main : MonoBehaviour
             return;
         }
 
-        Time.timeScale = 0.5f;
+        SpawnDashTrail();
 
+        Time.timeScale = 0.4f;
+
+        target.transform.DOKill(true);
         target.LastGetDamageTime = Time.time;
         target.transform.DOPunchScale(1.015f * Vector3.one, 0.15f, 1, 0.1f).SetEase(Ease.Flash);
         target.Health -= _player.Damage;
@@ -867,7 +931,7 @@ public class Main : MonoBehaviour
 
         if (target.SlashMaskTransform != null)
         {
-            target.SlashMaskTransform.DOScaleY(30f, 0.25f).SetEase(Ease.OutExpo).OnComplete(() =>
+            target.SlashMaskTransform.DOScaleY(30f, 0.2f).SetEase(Ease.OutExpo).OnComplete(() =>
             {
                 target.SlashMaskTransform.localScale = new Vector3(15, 0, 15);
             });
@@ -880,6 +944,8 @@ public class Main : MonoBehaviour
 
             targetArray.Remove(target);
             await target.transform.DOScale(Vector3.zero, 0.3f).SetEase(Ease.InBack).ToUniTask();
+
+            target.transform.DOKill();
             Destroy(target.gameObject);
             var isCompleted = await TryCompleteLevel();
         }
@@ -889,19 +955,20 @@ public class Main : MonoBehaviour
 
     #endregion
 
-    [NaughtyAttributes.Button]
+    private Sequence _shakeSequence;
+
     private void SmallShake()
     {
         var dool = E.DynamicContainer.DynamicParent;
-        dool.DOKill(true);
-        Sequence sequence = DOTween.Sequence();
-        sequence.Append(dool.DOShakePosition(0.2f, .8f));
-        sequence.OnUpdate(() =>
+        _shakeSequence?.Kill(true);
+        _shakeSequence = DOTween.Sequence();
+        _shakeSequence.Append(dool.DOShakePosition(0.2f, .8f));
+        _shakeSequence.OnUpdate(() =>
         {
             _camFollow.FollowOffset.x = dool.position.x;
             _camFollow.FollowOffset.y = dool.position.y;
         });
-        sequence.OnComplete(() =>
+        _shakeSequence.OnComplete(() =>
         {
             _camFollow.FollowOffset.x = 0f;
             _camFollow.FollowOffset.y = 0f;

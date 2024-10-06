@@ -483,7 +483,7 @@ TextureImporter:
         width: 68
         height: 52
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -492,6 +492,72 @@ TextureImporter:
       bones: []
       spriteID: f21bfd3d571847540bb69c54bf15ca47
       internalID: 1210565549
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: talk
+      rect:
+        serializedVersion: 2
+        x: 391
+        y: 259
+        width: 287
+        height: 62
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 120, y: 24, z: 120, w: 24}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 554eb47ae1b4d2c428af16382180102a
+      internalID: -1552450785
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: trail
+      rect:
+        serializedVersion: 2
+        x: 334
+        y: 144
+        width: 472
+        height: 80
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: dd7d2d68381810b44b9fca9a5f9317ed
+      internalID: 1511552379
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: attack_slash
+      rect:
+        serializedVersion: 2
+        x: 537
+        y: 416
+        width: 263
+        height: 216
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 292dc05d450522841a663c2a9f10d16a
+      internalID: 1750381218
       vertices: []
       indices: 
       edges: []
@@ -520,15 +586,18 @@ TextureImporter:
       atlas_5: 1534024521
       atlas_6: 1468901573
       atlas_7: 1210565549
+      attack_slash: 1750381218
       enemy_circle: 679876179
       hammer: -570403039
+      talk: -1552450785
+      trail: 1511552379
       wall_corner: 1480665454
       wall_front: -242960085
-      wall_front_l: -527589627
-      wall_front_r: -1940707623
+      wall_front_l: 1886554839
+      wall_front_r: 370793561
       wall_front_to_side: -327472520
       wall_top_corner: 2048273730
-      wall_up: -1524096475
+      wall_up: 191726716
   mipmapLimitGroupName: 
   pSDRemoveMatte: 1
   userData: 

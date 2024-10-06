@@ -127,7 +127,7 @@ TextureImporter:
       rect:
         serializedVersion: 2
         x: 9
-        y: 255
+        y: 257
         width: 50
         height: 43
       alignment: 0
@@ -258,10 +258,10 @@ TextureImporter:
       name: queen_eye_l
       rect:
         serializedVersion: 2
-        x: 111
-        y: 61
-        width: 11
-        height: 11
+        x: 124
+        y: 64
+        width: 13
+        height: 15
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -272,28 +272,6 @@ TextureImporter:
       bones: []
       spriteID: 57d4fbf9b66d9a54e9483f1b5ff208e0
       internalID: 328282025
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: queen_eye_r
-      rect:
-        serializedVersion: 2
-        x: 145
-        y: 60
-        width: 11
-        height: 12
-      alignment: 0
-      pivot: {x: 0.5, y: 0.5}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: 7b9abd516e1a55a428fa9aeff48260a4
-      internalID: -1623313152
       vertices: []
       indices: 
       edges: []
