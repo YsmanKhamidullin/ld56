@@ -639,7 +639,7 @@ MonoBehaviour:
   AttackRange: 1
   AttackDelay: 0.3
   LastAttackTime: 0
-  InvinsibleTime: 0.1
+  InvinsibleTime: 0.2
   LastGetDamageTime: 0
   rb: {fileID: 2623339677456486688}
   ProjectilePrefab: {fileID: 0}

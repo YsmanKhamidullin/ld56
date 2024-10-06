@@ -28,6 +28,9 @@ public class Main : MonoBehaviour
     [SerializeField]
     private CinemachineFollow _camFollow;
 
+    [SerializeField]
+    private SpriteRenderer _bg;
+
     [Header("Canvas")]
     [SerializeField]
     private CanvasGroup _upgradeWindow;
@@ -48,10 +51,28 @@ public class Main : MonoBehaviour
     private CanvasGroup _gameCompleteMenu;
 
     [SerializeField]
+    private TextMeshProUGUI _comboCounterLabel;
+
+    [SerializeField]
     private TextMeshProUGUI _levelCompleteCounterLabel;
 
     [SerializeField]
     private TextMeshProUGUI _gameCompleteRoninLabel;
+
+    [SerializeField]
+    private TextMeshProUGUI _atkLabel;
+
+    [SerializeField]
+    private TextMeshProUGUI _sizeLabel;
+
+    [SerializeField]
+    private TextMeshProUGUI _dashLabel;
+
+    [SerializeField]
+    private TextMeshProUGUI _rangeLabel;
+
+    [SerializeField]
+    private TextMeshProUGUI _speedLabel;
 
     [SerializeField]
     private TMPWriter _gameCompleteThanksLabel;
@@ -67,6 +88,9 @@ public class Main : MonoBehaviour
 
     [SerializeField]
     private Button _gameStartHardButton;
+
+    [SerializeField]
+    private Button _gameStartOneLifeButton;
 
     [SerializeField]
     private Button _resumeGameButton;
@@ -112,6 +136,9 @@ public class Main : MonoBehaviour
     [SerializeField]
     private Transform _startUpdateEnemeiesPoint;
 
+    [SerializeField]
+    private bool _shouldKillAll = false;
+
     private List<Ant> _meleeEnemies;
     private List<Ant> _rangeEnemies;
     private List<Ant> _bossEnemies;
@@ -141,6 +168,7 @@ public class Main : MonoBehaviour
     private bool _isPlayerDash;
     private float _currentDashTime = 0.2f;
 
+
     [Header("SFX")]
     [SerializeField]
     private AudioSource _enemyDieSfx;
@@ -158,6 +186,8 @@ public class Main : MonoBehaviour
     [SerializeField]
     private TextMeshProUGUI _debugLabel;
 
+    private int _killStreak;
+
     private void Start()
     {
         Application.targetFrameRate = 60;
@@ -171,7 +201,7 @@ public class Main : MonoBehaviour
         {
             Game.UpgradeSize = 0;
             Game.UpgradeAttack = 0;
-            Game.UpgradeHealth = 0;
+            // Game.UpgradeHealth = 0;
             Game.UpgradeAttackRange = 0;
             Game.UpgradeDash = 0;
             Game.UpgradeSpeed = 0;
@@ -207,20 +237,26 @@ public class Main : MonoBehaviour
         switch (difficulty)
         {
             case Difficulty.Easy:
-                _player.Health = 5;
-                _player.AttackRange *= 1.2f;
+                _player.Health = 12;
+                _player.AttackRange *= 1.5f;
+                _player.Damage += 2;
                 break;
             case Difficulty.Normal:
-                _player.Health = 3;
+                _player.Health = 6;
+                _player.AttackRange *= 1.2f;
                 break;
             case Difficulty.Hard:
+                _player.Health = 3;
+                break;
+            case Difficulty.OneLife:
                 _player.Health = 1;
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(difficulty), difficulty, null);
         }
+
         ApplyPlayerUpgrades();
-        
+
         Game.IsPause = true;
         if (SceneManager.GetActiveScene().buildIndex == 0)
         {
@@ -249,10 +285,12 @@ public class Main : MonoBehaviour
 
     private void ApplyPlayerUpgrades()
     {
-        _player.transform.localScale += new Vector3(0.075f, 0.075f, 0) * Game.UpgradeSize;
-        _player.Damage += Game.UpgradeAttack;
-        _player.Health += Game.UpgradeHealth;
-        _player.AttackRange += 0.1f * Game.UpgradeAttackRange;
+        var newScale = _player.transform.localScale.x + 0.075f * Game.UpgradeSize;
+        var clapedScale = Math.Clamp(newScale, 0.5f, 2.8f);
+        _player.transform.localScale = new Vector3(clapedScale, clapedScale, 1);
+        _player.Damage = Mathf.Clamp(_player.Damage + Game.UpgradeAttack, 1, 15);
+        // _player.Health += Game.UpgradeHealth;
+        _player.AttackRange = Mathf.Clamp(_player.AttackRange + (0.1f * Game.UpgradeAttackRange), 0.1f, 2f);
         _player.AttackDelay -= 0.005f * Game.UpgradeDash;
         _player.MoveSpeed += 0.3f * Game.UpgradeSpeed;
 
@@ -261,6 +299,13 @@ public class Main : MonoBehaviour
 
     private void InitializeCanvas()
     {
+        var bgColor = _bg.color;
+        bgColor.a = Math.Clamp(CurrentLevelN() / 10f, 0.2f, 1f);
+        _bg.color = bgColor;
+        var curEuler = _bg.transform.rotation.eulerAngles;
+        curEuler.z = Random.rotation.z;
+        _bg.transform.rotation = Quaternion.Euler(curEuler);
+
         _gameStartMenu.gameObject.SetActive(true);
         _gameOverMenu.gameObject.SetActive(true);
         _pauseMenu.gameObject.SetActive(true);
@@ -270,6 +315,7 @@ public class Main : MonoBehaviour
         _gameStartEasyButton.onClick.AddListener(() => _ = StartGame(Difficulty.Easy));
         _gameStartNormalButton.onClick.AddListener(() => _ = StartGame(Difficulty.Normal));
         _gameStartHardButton.onClick.AddListener(() => _ = StartGame(Difficulty.Hard));
+        _gameStartOneLifeButton.onClick.AddListener(() => _ = StartGame(Difficulty.OneLife));
         _resumeGameButton.onClick.AddListener(() => _ = UnPause());
         _restartLevelButton.onClick.AddListener(RestartLevel);
         _restartGameButton.onClick.AddListener(RestartGame);
@@ -294,11 +340,16 @@ public class Main : MonoBehaviour
         _gameCompleteMenu.gameObject.SetActive(false);
     }
 
+    private int CurrentLevelN()
+    {
+        return SceneManager.GetActiveScene().buildIndex + 1;
+    }
+
     private void SelectEnlargeUpgrade()
     {
         Game.UpgradeSize += 1;
         Game.UpgradeAttack += 1;
-        Game.UpgradeHealth += 1;
+        // Game.UpgradeHealth += 1;
         Game.UpgradeAttackRange += 1;
         Game.UpgradeDash -= 1;
         _levelUpSfx.Play();
@@ -353,6 +404,7 @@ public class Main : MonoBehaviour
             UpdateEnemies();
         }
 
+        UpdateNotEnemies();
         UpdateEnemyProjectiles();
     }
 
@@ -363,7 +415,7 @@ public class Main : MonoBehaviour
             return;
         }
 
-        if (_player.transform.IsNear(_startUpdateEnemeiesPoint, 2f))
+        if (_player.transform.IsNear(_startUpdateEnemeiesPoint, 3.5f))
         {
             _isUpateEnemies = true;
         }
@@ -399,6 +451,11 @@ public class Main : MonoBehaviour
     {
         if (_meleeEnemies.Count == 0 && _rangeEnemies.Count == 0 && _eggEnemies.Count == 0 && _bossEnemies.Count == 0)
         {
+            if (_shouldKillAll && _notEnemies.Count != 0)
+            {
+                return false;
+            }
+
             DOTween.KillAll();
 
             bool isLastScene = SceneManager.GetActiveScene().buildIndex == SceneManager.sceneCountInBuildSettings - 1;
@@ -424,8 +481,11 @@ public class Main : MonoBehaviour
         Time.timeScale = 1f;
         _upgradeWindow.alpha = 0f;
         _upgradeWindow.gameObject.SetActive(true);
-        await _upgradeWindow.FadeIn(0.5f);
-        
+        _upgradeEnlargeButton.interactable = false;
+        _upgradeShrinkButton.interactable = false;
+        await _upgradeWindow.FadeIn(0.6f);
+        _upgradeEnlargeButton.interactable = true;
+        _upgradeShrinkButton.interactable = true;
     }
 
     private async UniTask LevelComplete()
@@ -510,6 +570,12 @@ public class Main : MonoBehaviour
         DropMovement();
 
         _pauseMenu.gameObject.SetActive(true);
+
+        _atkLabel.text = "ATK: " + _player.Damage;
+        _sizeLabel.text = "SIZE: " + Math.Round(_player.transform.localScale.x, 2);
+        _dashLabel.text = "DASH: " + Math.Round(_player.AttackDelay, 2);
+        _rangeLabel.text = "ATK RANGE: " + Math.Round(_player.AttackRange, 2);
+        _speedLabel.text = "SPEED: " + Math.Round(_player.MoveSpeed, 2);
         _pauseMenu.alpha = 0f;
         await _pauseMenu.FadeIn();
     }
@@ -557,6 +623,15 @@ public class Main : MonoBehaviour
             {
                 ant.Animator.SetBool(Walk, false);
             }
+        }
+    }
+
+    private void UpdateNotEnemies()
+    {
+        foreach (var ant in _notEnemies)
+        {
+            var dir = (_player.transform.position - ant.transform.position).normalized;
+            ant.transform.up = dir;
         }
     }
 
@@ -620,7 +695,7 @@ public class Main : MonoBehaviour
                 continue;
             }
 
-            ant.transform.localScale += Vector3.one * Time.deltaTime;
+            ant.transform.localScale += 0.7f * Vector3.one * Time.deltaTime;
             bool isCanAttack = IsEnemyCanAttack(ant);
             if (isCanAttack)
             {
@@ -781,9 +856,8 @@ public class Main : MonoBehaviour
 
         _player.Health -= damage;
         _isPlayerInvincible = true;
-        DOTween.Sequence().InsertCallback(0.1f, () => { _isPlayerInvincible = false; });
-        _player.transform.DOKill(true);
-        _player.transform.DOPunchScale(1.025f * Vector3.one, 0.15f, 1, 0.1f);
+        DOTween.Sequence().InsertCallback(_player.InvinsibleTime, () => { _isPlayerInvincible = false; });
+        LongShake();
         CheckPlayerHealth();
     }
 
@@ -999,6 +1073,7 @@ public class Main : MonoBehaviour
 
         if (target.Health <= 0)
         {
+            AppendKillStreak();
             _enemyDieSfx.Play();
             LongShake();
             targetArray.Remove(target);
@@ -1010,6 +1085,42 @@ public class Main : MonoBehaviour
         }
 
         Time.timeScale = 1f;
+    }
+
+    [SerializeField]
+    private float _killStreakTime;
+
+    private float _killStreakTimeStamp;
+
+    private void AppendKillStreak()
+    {
+        if (Time.time - _killStreakTimeStamp > _killStreakTime)
+        {
+            _killStreak = 0;
+        }
+
+        _killStreak++;
+        _killStreakTimeStamp = Time.time;
+        if (_killStreak >= 3)
+        {
+            AnimateComboCounter(_killStreak);
+        }
+    }
+
+    private void AnimateComboCounter(int killStreak)
+    {
+        _comboCounterLabel.text = $"COMBO X{killStreak}";
+        var targetScale = 1 + 0.2f * killStreak;
+        _comboCounterLabel.transform.DOKill(true);
+        _comboCounterLabel.DOKill(false);
+        _comboCounterLabel.DOFade(1f, 0.15f).SetUpdate(true).SetEase(Ease.Flash);
+        _comboCounterLabel.transform.DOScale(targetScale, 0.3f).SetUpdate(true).SetEase(Ease.OutBack).OnComplete(() =>
+        {
+            _comboCounterLabel.DOFade(0f, _killStreakTime).OnComplete(() =>
+            {
+                _comboCounterLabel.transform.localScale = Vector3.zero;
+            });
+        });
     }
 
     #endregion

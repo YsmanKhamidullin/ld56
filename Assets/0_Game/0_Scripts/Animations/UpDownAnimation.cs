@@ -33,6 +33,11 @@ public class UpDownAnimation : MonoBehaviour
         transform.DOLocalMoveY(startPosY + _addableY, _time).SetEase(_ease).SetLoops(-1, LoopType.Yoyo);
     }
 
+    private void OnDestroy()
+    {
+        transform.DOKill(true);
+    }
+
     [Button]
     private void Preview()
     {
