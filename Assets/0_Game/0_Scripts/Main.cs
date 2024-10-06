@@ -290,7 +290,7 @@ public class Main : MonoBehaviour
         _player.transform.localScale = new Vector3(clapedScale, clapedScale, 1);
         _player.Damage = Mathf.Clamp(_player.Damage + Game.UpgradeAttack, 1, 15);
         // _player.Health += Game.UpgradeHealth;
-        _player.AttackRange = Mathf.Clamp(_player.AttackRange + (0.1f * Game.UpgradeAttackRange), 0.1f, 2f);
+        _player.AttackRange = Mathf.Clamp(_player.AttackRange + (0.05f * Game.UpgradeAttackRange), 0.7f, 2f);
         _player.AttackDelay -= 0.005f * Game.UpgradeDash;
         _player.MoveSpeed += 0.3f * Game.UpgradeSpeed;
 
@@ -312,6 +312,7 @@ public class Main : MonoBehaviour
         _levelCompleteMenu.gameObject.SetActive(true);
         _gameCompleteMenu.gameObject.SetActive(true);
 
+
         _gameStartEasyButton.onClick.AddListener(() => _ = StartGame(Difficulty.Easy));
         _gameStartNormalButton.onClick.AddListener(() => _ = StartGame(Difficulty.Normal));
         _gameStartHardButton.onClick.AddListener(() => _ = StartGame(Difficulty.Hard));
@@ -329,6 +330,8 @@ public class Main : MonoBehaviour
         _soundSlider.SetValueWithoutNotify(Game.SoundValue);
         _musicSlider.SetValueWithoutNotify(Game.MusicValue);
 
+        var musicNumber = PlayerPrefs.GetInt("MusicNumber", 1);
+        _selectMusicDropdownPause.SetValueWithoutNotify(musicNumber - 1);
         _selectMusicDropdownPause.onValueChanged.AddListener(ChangeMusicBg);
 
         _soundSlider.OnValueChanged += SetSound;
@@ -549,7 +552,8 @@ public class Main : MonoBehaviour
             return;
         }
 
-        if (Input.GetKeyDown(KeyCode.Escape) && _pauseTask.Status is UniTaskStatus.Succeeded or UniTaskStatus.Pending)
+        if ((Input.GetKeyDown(KeyCode.Escape) || Input.GetKeyDown(KeyCode.P)) &&
+            _pauseTask.Status is UniTaskStatus.Succeeded or UniTaskStatus.Pending)
         {
             if (Game.IsPause)
             {
@@ -855,9 +859,11 @@ public class Main : MonoBehaviour
         }
 
         _player.Health -= damage;
+        _player.HitImpactSprite.DOFade(1f, 0.1f).SetEase(Ease.Flash).SetLoops(2, LoopType.Yoyo);
         _isPlayerInvincible = true;
         DOTween.Sequence().InsertCallback(_player.InvinsibleTime, () => { _isPlayerInvincible = false; });
         LongShake();
+        _levelFailSfx.Play();
         CheckPlayerHealth();
     }
 
@@ -997,7 +1003,8 @@ public class Main : MonoBehaviour
         for (var i = 0; i < _meleeEnemies.Count; i++)
         {
             var enemy = _meleeEnemies[i];
-            if (_player.transform.IsNear(enemy.transform, _player.AttackRange))
+            var enemyOverSize = enemy.transform.localScale.x - 1;
+            if (_player.transform.IsNear(enemy.transform, _player.AttackRange + enemyOverSize / 2f))
             {
                 _ = PlayerAttack(enemy, _meleeEnemies);
             }
@@ -1006,7 +1013,8 @@ public class Main : MonoBehaviour
         for (var i = 0; i < _rangeEnemies.Count; i++)
         {
             var enemy = _rangeEnemies[i];
-            if (_player.transform.IsNear(enemy.transform, _player.AttackRange))
+            var enemyOverSize = enemy.transform.localScale.x - 1;
+            if (_player.transform.IsNear(enemy.transform, _player.AttackRange + enemyOverSize / 2f))
             {
                 _ = PlayerAttack(enemy, _rangeEnemies);
             }
@@ -1015,7 +1023,8 @@ public class Main : MonoBehaviour
         for (var i = 0; i < _eggEnemies.Count; i++)
         {
             var enemy = _eggEnemies[i];
-            if (_player.transform.IsNear(enemy.transform, _player.AttackRange))
+            var enemyOverSize = enemy.transform.localScale.x - 1;
+            if (_player.transform.IsNear(enemy.transform, _player.AttackRange + enemyOverSize / 2f))
             {
                 _ = PlayerAttack(enemy, _eggEnemies);
             }
@@ -1024,7 +1033,8 @@ public class Main : MonoBehaviour
         for (var i = 0; i < _bossEnemies.Count; i++)
         {
             var enemy = _bossEnemies[i];
-            if (_player.transform.IsNear(enemy.transform, _player.AttackRange))
+            var enemyOverSize = enemy.transform.localScale.x - 1;
+            if (_player.transform.IsNear(enemy.transform, _player.AttackRange + enemyOverSize / 2f))
             {
                 _ = PlayerAttack(enemy, _bossEnemies);
             }
@@ -1033,7 +1043,8 @@ public class Main : MonoBehaviour
         for (int i = 0; i < _notEnemies.Count; i++)
         {
             var notEnemy = _notEnemies[i];
-            if (_player.transform.IsNear(notEnemy.transform, _player.AttackRange))
+            var enemyOverSize = notEnemy.transform.localScale.x - 1;
+            if (_player.transform.IsNear(notEnemy.transform, _player.AttackRange + enemyOverSize / 2f))
             {
                 _ = PlayerAttack(notEnemy, _notEnemies);
                 Game.AttackNotEnemy++;
@@ -1109,11 +1120,11 @@ public class Main : MonoBehaviour
 
     private void AnimateComboCounter(int killStreak)
     {
-        _comboCounterLabel.text = $"COMBO X{killStreak}";
+        _comboCounterLabel.text = $"<wave amplitude=1.5><palette>COMBO X{killStreak}";
         var targetScale = 1 + 0.2f * killStreak;
         _comboCounterLabel.transform.DOKill(true);
         _comboCounterLabel.DOKill(false);
-        _comboCounterLabel.DOFade(1f, 0.15f).SetUpdate(true).SetEase(Ease.Flash);
+        _comboCounterLabel.alpha = 1f;
         _comboCounterLabel.transform.DOScale(targetScale, 0.3f).SetUpdate(true).SetEase(Ease.OutBack).OnComplete(() =>
         {
             _comboCounterLabel.DOFade(0f, _killStreakTime).OnComplete(() =>
