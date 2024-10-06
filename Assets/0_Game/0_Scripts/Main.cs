@@ -219,7 +219,8 @@ public class Main : MonoBehaviour
             default:
                 throw new ArgumentOutOfRangeException(nameof(difficulty), difficulty, null);
         }
-
+        ApplyPlayerUpgrades();
+        
         Game.IsPause = true;
         if (SceneManager.GetActiveScene().buildIndex == 0)
         {
@@ -243,7 +244,6 @@ public class Main : MonoBehaviour
 
     private void InitializePlayer()
     {
-        ApplyPlayerUpgrades();
         _player.gameObject.SetActive(true);
     }
 
@@ -896,7 +896,7 @@ public class Main : MonoBehaviour
     private void SmallZoom(float startZ)
     {
         _isZooming = true;
-        DOTween.To(() => _camFollow.FollowOffset.z, x => _camFollow.FollowOffset.z = x, startZ + 1.5f, 0.3f)
+        DOTween.To(() => _camFollow.FollowOffset.z, x => _camFollow.FollowOffset.z = x, startZ + 3f, 0.3f)
             .SetEase(Ease.Flash);
     }
 
@@ -976,6 +976,7 @@ public class Main : MonoBehaviour
         }
 
         SpawnDashTrail();
+        SmallShake();
 
         Time.timeScale = 0.4f;
 
@@ -996,11 +997,10 @@ public class Main : MonoBehaviour
             });
         }
 
-        SmallShake();
         if (target.Health <= 0)
         {
             _enemyDieSfx.Play();
-
+            LongShake();
             targetArray.Remove(target);
             await target.transform.DOScale(Vector3.zero, 0.3f).SetEase(Ease.InBack).ToUniTask();
 
@@ -1037,15 +1037,15 @@ public class Main : MonoBehaviour
     private void LongShake()
     {
         var dool = E.DynamicContainer.DynamicParent;
-        dool.DOKill(true);
-        Sequence sequence = DOTween.Sequence();
-        sequence.Append(dool.DOShakePosition(0.3f, 1.5f));
-        sequence.OnUpdate(() =>
+        _shakeSequence?.Kill(true);
+        _shakeSequence = DOTween.Sequence();
+        _shakeSequence.Append(dool.DOShakePosition(0.3f, 1f));
+        _shakeSequence.OnUpdate(() =>
         {
             _camFollow.FollowOffset.x = dool.position.x;
             _camFollow.FollowOffset.y = dool.position.y;
         });
-        sequence.OnComplete(() =>
+        _shakeSequence.OnComplete(() =>
         {
             _camFollow.FollowOffset.x = 0f;
             _camFollow.FollowOffset.y = 0f;
