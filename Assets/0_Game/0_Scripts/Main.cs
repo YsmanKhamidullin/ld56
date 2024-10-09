@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using Cysharp.Threading.Tasks;
 using DG.Tweening;
+using GameAnalyticsSDK;
+using SCR.SDK.Wrappers;
 using TMPEffects.Components;
 using TMPro;
 using Unity.Cinemachine;
@@ -79,6 +81,9 @@ public class Main : MonoBehaviour
 
     [SerializeField]
     private TMP_Dropdown _selectMusicDropdownPause;
+
+    [SerializeField]
+    private Button _newGamePauseButton;
 
     [SerializeField]
     private Button _gameStartEasyButton;
@@ -233,7 +238,13 @@ public class Main : MonoBehaviour
 
     private async UniTask StartGame(Difficulty difficulty)
     {
+        GameAnalyticsWrapper.ProgressionLvl(GAProgressionStatus.Start, CurrentLevelN() - 1);
         Game.Difficulty = difficulty;
+        if (SceneManager.GetActiveScene().buildIndex == 0)
+        {
+            GameAnalyticsWrapper.DesignEvent("difficulty", (int)difficulty);
+        }
+
         switch (difficulty)
         {
             case Difficulty.Easy:
@@ -320,6 +331,7 @@ public class Main : MonoBehaviour
         _resumeGameButton.onClick.AddListener(() => _ = UnPause());
         _restartLevelButton.onClick.AddListener(RestartLevel);
         _restartGameButton.onClick.AddListener(RestartGame);
+        _newGamePauseButton.onClick.AddListener(RestartGame);
         _restartGameAfterCompleteButton.onClick.AddListener(RestartGameAfterComplete);
 
         _upgradeEnlargeButton.onClick.AddListener(SelectEnlargeUpgrade);
@@ -350,6 +362,7 @@ public class Main : MonoBehaviour
 
     private void SelectEnlargeUpgrade()
     {
+        GameAnalyticsWrapper.DesignEvent("upgrade", 0);
         Game.UpgradeSize += 1;
         Game.UpgradeAttack += 1;
         // Game.UpgradeHealth += 1;
@@ -361,6 +374,7 @@ public class Main : MonoBehaviour
 
     private void SelectShrinkUpgrade()
     {
+        GameAnalyticsWrapper.DesignEvent("upgrade", 1);
         Game.UpgradeSize -= 1;
         Game.UpgradeSpeed += 1;
         Game.UpgradeDash += 1;
@@ -440,6 +454,7 @@ public class Main : MonoBehaviour
 
     private async UniTask GameOver()
     {
+        GameAnalyticsWrapper.ProgressionLvl(GAProgressionStatus.Fail, CurrentLevelN() - 1);
         Game.IsPause = true;
         DropMovement();
         Time.timeScale = 1f;
@@ -493,6 +508,7 @@ public class Main : MonoBehaviour
 
     private async UniTask LevelComplete()
     {
+        GameAnalyticsWrapper.ProgressionLvl(GAProgressionStatus.Complete, CurrentLevelN() - 1);
         _levelCompleteMenu.alpha = 0f;
         _levelCompleteCounterLabel.text = "";
         _levelCompleteMenu.gameObject.SetActive(true);
@@ -513,6 +529,7 @@ public class Main : MonoBehaviour
 
     private async UniTask GameComplete()
     {
+        GameAnalyticsWrapper.DesignEvent("Game Complete", (int)Game.Difficulty);
         Game.IsPause = true;
         _gameCompleteMenu.alpha = 0f;
         _gameCompleteMenu.gameObject.SetActive(true);
